@@ -1,0 +1,4 @@
+interface:
+  display_name: "RTL Human Style"
+  short_description: "Write human-readable RTL and testbench code"
+  default_prompt: "Use $rtl-human-style to write readable RTL or testbench code in a hand-written, review-friendly style."
