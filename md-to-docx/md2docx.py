@@ -190,7 +190,7 @@ def text_display_width_cm(text):
         if ord(ch) > 127:
             w += 0.38
         else:
-            w += 0.22
+            w += 0.25
     return w
 
 
