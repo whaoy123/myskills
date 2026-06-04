@@ -266,26 +266,20 @@ def calc_col_widths(header, data_rows):
     return widths
 
 
-def get_table_title_before(lines, table_start_idx):
-    """从表格位置向前查找可能的表格标题行。"""
-    j = table_start_idx - 1
+def get_caption_before(lines, idx, prefix):
+    """从 idx 位置向前查找形如 '表 N-N 名称' 或 '图 N-N 名称' 的题注行。
+    返回题注名称部分（去掉 '表/图 N-N' 前缀），未找到返回空字符串。"""
+    j = idx - 1
     while j >= 0:
         s = lines[j].strip()
         if not s:
             j -= 1
             continue
-        # 如果是表 N 标题格式
-        m = re.match(r"^表\s*\d+", s)
+        m = re.match(r"^" + prefix + r"\s*\d+[\-\.]\d+\s*(.*)", s)
         if m:
-            return s
-        # 如果是其他表格或分隔线，停止
-        if s.startswith("|") or s == "---":
-            return None
-        # 如果是普通文字且较短，可能是标题
-        if len(s) < 40 and not s.startswith("#"):
-            return s
-        return None
-    return None
+            return m.group(1).strip()
+        break
+    return ""
 
 
 # ============================================================
@@ -337,18 +331,29 @@ def parse_and_write(md_path, doc):
 
         # 代码块
         if stripped.startswith("```"):
+            code_block_start = i
             lang = stripped[3:].strip().lower()
             code_lines = []
             i += 1
             while i < len(lines) and not lines[i].strip().startswith("```"):
                 code_lines.append(lines[i])
                 i += 1
-            i += 1
+            i += 1  # i 现在指向代码块之后的第一行
 
             if lang == "mermaid" and mermaid_counter[0] < len(mermaid_files):
                 idx = mermaid_counter[0]
                 png_path = mermaid_files[idx]
                 mermaid_counter[0] += 1
+
+                # 从代码块之后的位置向后查找 '图 X-X 名称' 行
+                fig_cap_name = ""
+                for j in range(i, min(i + 5, len(lines))):
+                    m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
+                    if m:
+                        fig_cap_name = m.group(1).strip()
+                        break
+                if not fig_cap_name and idx < len(mermaid_captions):
+                    fig_cap_name = mermaid_captions[idx]
 
                 if os.path.exists(png_path) and os.path.getsize(png_path) > 100:
                     p_img = doc.add_paragraph()
@@ -360,13 +365,13 @@ def parse_and_write(md_path, doc):
                     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     add_run_with_font(p_img, "[占位图示：待替换为正式插图]", size=Pt(9))
 
-                # 图题注（下方）：图 + SEQ + 标题
+                # 图题注（下方）：图 + SEQ + 题注名称
                 p_cap = doc.add_paragraph()
                 p_cap.style = doc.styles["Caption"]
                 add_run_with_font(p_cap, "图", size=Pt(10.5))
                 insert_seq_field(p_cap, "Figure")
-                cap_text = mermaid_captions[idx] if idx < len(mermaid_captions) else "系统框图"
-                add_run_with_font(p_cap, f" {cap_text}", size=Pt(10.5))
+                if fig_cap_name:
+                    add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
             else:
                 p = doc.add_paragraph()
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -376,6 +381,7 @@ def parse_and_write(md_path, doc):
 
         # 表格
         if stripped.startswith("|") and "|" in stripped[1:]:
+            table_start_i = i
             table_lines = []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 table_lines.append(lines[i].strip())
@@ -395,11 +401,14 @@ def parse_and_write(md_path, doc):
                     if not data_rows:
                         continue
 
-                # 表题注（在表上方）：表 + SEQ
+                # 表题注（在表上方）：表 + SEQ + 题注名称
+                cap_name = get_caption_before(lines, table_start_i, "表")
                 p_cap = doc.add_paragraph()
                 p_cap.style = doc.styles["Caption"]
                 add_run_with_font(p_cap, "表", size=Pt(10.5))
                 insert_seq_field(p_cap, "Table")
+                if cap_name:
+                    add_run_with_font(p_cap, f"-{cap_name}", size=Pt(10.5))
 
                 # 计算列宽
                 col_widths = calc_col_widths(header, data_rows)
@@ -456,14 +465,35 @@ def parse_and_write(md_path, doc):
         # ASCII 流程图
         if stripped.startswith("+") and stripped.endswith("+"):
             block_lines = []
-            while i < len(lines) and lines[i].strip().startswith("+"):
-                block_lines.append(lines[i])
-                i += 1
+            while i < len(lines):
+                s = lines[i].strip()
+                if s.startswith("+"):
+                    block_lines.append(lines[i])
+                    i += 1
+                elif s.startswith("|") and block_lines:
+                    block_lines.append(lines[i])
+                    i += 1
+                else:
+                    break
             if len(block_lines) > 2:
                 p = doc.add_paragraph()
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = add_run_with_font(p, "[占位图示：待替换为正式插图]", size=Pt(9))
                 run.font.color.rgb = RGBColor(128, 128, 128)
+
+                # 查找 ASCII 块之后的 '图 X-X 名称' 行并生成题注
+                fig_cap_name = ""
+                for j in range(i, min(i + 5, len(lines))):
+                    m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
+                    if m:
+                        fig_cap_name = m.group(1).strip()
+                        break
+                if fig_cap_name:
+                    p_cap = doc.add_paragraph()
+                    p_cap.style = doc.styles["Caption"]
+                    add_run_with_font(p_cap, "图", size=Pt(10.5))
+                    insert_seq_field(p_cap, "Figure")
+                    add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
             continue
 
         # 普通段落

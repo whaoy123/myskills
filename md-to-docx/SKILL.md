@@ -108,8 +108,30 @@ def cm_to_twips(cm):
 
 - 表题注在表上方，图题注在图下方
 - 使用 Word SEQ 域实现自动编号，表和图独立编号
-- 格式：「表 SEQ Table \* ARABIC」「图 SEQ Figure \* ARABIC」
+- 自动从 Markdown 中提取题注名称，输出格式为「表 SEQ-名称」「图 SEQ-名称」
+  - 表格：从表上方的 `表 N-N 名称` 行提取名称
+  - 图（Mermaid）：从代码块下方的 `图 N-N 名称` 行提取名称
+  - 图（ASCII）：从 ASCII 块下方的 `图 N-N 名称` 行提取名称
 - 打开 Word 后 Ctrl+A → F9 更新编号
+
+题注名称提取逻辑（`get_caption_before` 函数）：
+
+```python
+def get_caption_before(lines, idx, prefix):
+    """从 idx 位置向前查找形如 '表 N-N 名称' 或 '图 N-N 名称' 的题注行。
+    返回题注名称部分（去掉 '表/图 N-N' 前缀），未找到返回空字符串。"""
+    j = idx - 1
+    while j >= 0:
+        s = lines[j].strip()
+        if not s:
+            j -= 1
+            continue
+        m = re.match(r"^" + prefix + r"\s*\d+[\-\.]\d+\s*(.*)", s)
+        if m:
+            return m.group(1).strip()
+        break
+    return ""
+```
 
 ### 6. 图片
 
