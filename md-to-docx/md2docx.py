@@ -220,12 +220,12 @@ def calc_col_widths(header, data_rows):
             short_cols.add(c)
 
     if total_need <= PAGE_W:
-        # 所有列都能一行放下，剩余空间给最宽的列
+        # 所有列都能一行放下，剩余空间按比例分配
         widths = list(need)
         spare = PAGE_W - total_need
         if spare > 0:
-            max_idx = need.index(max(need))
-            widths[max_idx] += spare
+            for c in range(cols):
+                widths[c] += spare * (need[c] / total_need)
     else:
         # 超出页面：先保证短列不折行，剩余空间分给长列
         short_total = sum(need[c] for c in short_cols)
