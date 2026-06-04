@@ -223,12 +223,8 @@ def calc_col_widths(header, data_rows):
             short_cols.add(c)
 
     if total_need <= PAGE_W:
-        # 所有列都能一行放下，剩余空间给最宽的列
+        # 所有列都能一行放下，表格按内容宽度，不强行铺满页面
         widths = list(need)
-        spare = PAGE_W - total_need
-        if spare > 0:
-            max_idx = need.index(max(need))
-            widths[max_idx] += spare
     else:
         # 超出页面：先保证短列不折行，剩余空间分给长列
         short_total = sum(need[c] for c in short_cols)
@@ -263,9 +259,14 @@ def calc_col_widths(header, data_rows):
                 widths[max_long] += remaining
 
     widths = [round(w, 2) for w in widths]
-    diff = round(PAGE_W - sum(widths), 2)
-    max_idx = widths.index(max(widths))
-    widths[max_idx] = round(widths[max_idx] + diff, 2)
+
+    # 仅在表格需要撑满页面时做舍入对齐，紧凑表格不强制对齐
+    if total_need > PAGE_W:
+        diff = round(PAGE_W - sum(widths), 2)
+        if abs(diff) > 0.01:
+            max_idx = widths.index(max(widths))
+            widths[max_idx] = round(widths[max_idx] + diff, 2)
+
     return widths
 
 
