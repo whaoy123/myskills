@@ -178,10 +178,13 @@ def repeat_table_header(row):
 # 列宽计算
 # ============================================================
 
+PAD = 0.46    # Word 单元格左右边距+边框合计
+SAFETY = 0.08  # 列宽安全余量，避免渲染差异导致折行
+
+
 def text_display_width_cm(text):
     """估算文字单行显示宽度（cm），基于表格文 10.5pt 字号。
     已含 Word 单元格左右边距（各 0.19cm）和边框（约 0.04cm）。"""
-    PAD = 0.46  # Word 单元格左右边距+边框合计
     w = PAD
     for ch in text:
         if ord(ch) > 127:
@@ -204,7 +207,7 @@ def calc_col_widths(header, data_rows):
             if c < len(row):
                 texts.append(row[c])
         max_cm = max(text_display_width_cm(t) for t in texts)
-        need.append(max(0.3, max_cm))
+        need.append(max(0.3, max_cm + SAFETY))
 
     total_need = sum(need)
 
@@ -220,12 +223,12 @@ def calc_col_widths(header, data_rows):
             short_cols.add(c)
 
     if total_need <= PAGE_W:
-        # 所有列都能一行放下，剩余空间按比例分配
+        # 所有列都能一行放下，剩余空间给最宽的列
         widths = list(need)
         spare = PAGE_W - total_need
         if spare > 0:
-            for c in range(cols):
-                widths[c] += spare * (need[c] / total_need)
+            max_idx = need.index(max(need))
+            widths[max_idx] += spare
     else:
         # 超出页面：先保证短列不折行，剩余空间分给长列
         short_total = sum(need[c] for c in short_cols)
