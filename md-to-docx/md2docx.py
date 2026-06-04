@@ -309,6 +309,11 @@ def parse_and_write(md_path, doc):
             i += 1
             continue
 
+        # 跳过表/图题注行（已由表格/图块处理器消费）
+        if re.match(r"^(表|图)\s*\d+[\-\.]\d+\s*\S", stripped):
+            i += 1
+            continue
+
         # 标题
         heading_match = re.match(r"^(#{1,3})\s+(.*)", stripped)
         if heading_match:
@@ -347,10 +352,12 @@ def parse_and_write(md_path, doc):
 
                 # 从代码块之后的位置向后查找 '图 X-X 名称' 行
                 fig_cap_name = ""
+                fig_cap_line = -1
                 for j in range(i, min(i + 5, len(lines))):
                     m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
                     if m:
                         fig_cap_name = m.group(1).strip()
+                        fig_cap_line = j
                         break
                 if not fig_cap_name and idx < len(mermaid_captions):
                     fig_cap_name = mermaid_captions[idx]
@@ -372,6 +379,10 @@ def parse_and_write(md_path, doc):
                 insert_seq_field(p_cap, "Figure")
                 if fig_cap_name:
                     add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
+
+                # 跳过已被消费的 '图 X-X 名称' 行
+                if fig_cap_line >= 0:
+                    i = fig_cap_line + 1
             else:
                 p = doc.add_paragraph()
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -483,10 +494,12 @@ def parse_and_write(md_path, doc):
 
                 # 查找 ASCII 块之后的 '图 X-X 名称' 行并生成题注
                 fig_cap_name = ""
+                fig_cap_line = -1
                 for j in range(i, min(i + 5, len(lines))):
                     m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
                     if m:
                         fig_cap_name = m.group(1).strip()
+                        fig_cap_line = j
                         break
                 if fig_cap_name:
                     p_cap = doc.add_paragraph()
@@ -494,6 +507,7 @@ def parse_and_write(md_path, doc):
                     add_run_with_font(p_cap, "图", size=Pt(10.5))
                     insert_seq_field(p_cap, "Figure")
                     add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
+                    i = fig_cap_line + 1
             continue
 
         # 普通段落
