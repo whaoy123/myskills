@@ -1,26 +1,36 @@
 # md-to-docx
 
-将中文技术方案 Markdown 文档转换为基于指定 Word 模板的 `.docx` 文件。
+Convert Markdown documents into Word `.docx` files with template-aware formatting.
 
-## 功能
+This skill is intended for Chinese academic, course, and technical reports where the output must follow a Word template and needs reliable handling of headings, tables, images, captions, page breaks, and mixed Chinese/English typography.
 
-- 自动加载 `.dotx` 模板并继承样式
-- 表格列宽按内容自适应（含 Word 单元格边距计算）
-- 题注使用 Word SEQ 域，表和图独立编号，自动提取题注名称（如「表1-术语与缩略语」），F9 一键更新
-- Mermaid 图渲染为 PNG 插入
-- 标题三级以内，每章自动分页
-- 中西文混排（宋体 + Times New Roman）
+## Files
 
-## 依赖
+- `SKILL.md`: Codex skill instructions and activation metadata.
+- `md2docx.py`: Conversion script based on `python-docx`.
+
+## Dependencies
 
 ```bash
-pip3 install python-docx
+pip install python-docx
 ```
 
-## 使用
+## Usage
+
+The current script is configured through constants near the top of `md2docx.py`:
+
+```python
+TEMPLATE_SRC = "path/to/template.dotx"
+MD_PATH = "path/to/source.md"
+OUT_PATH = "path/to/output.docx"
+MERMAID_SYS = "path/to/diagram1.png"
+MERMAID_FPGA = "path/to/diagram2.png"
+```
+
+Update those paths for the target project, then run:
 
 ```bash
-python3 md2docx.py
+python md2docx.py
 ```
 
-修改脚本顶部的常量即可适配不同项目。
+After generating the Word file, open or render it to verify headings, tables, captions, images, fonts, and page breaks.

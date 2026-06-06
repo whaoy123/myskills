@@ -68,6 +68,114 @@ def add_run_with_font(paragraph, text, cn_font="宋体", en_font="Times New Roma
     return run
 
 
+BOOKMARK_ID = 1000
+CITATION_RE = re.compile(r"\[((?:\d+|[,\s，、;；\-–—])+)\]")
+
+
+def ref_bookmark_name(number):
+    return f"ref_{number}"
+
+
+def _next_bookmark_id():
+    global BOOKMARK_ID
+    BOOKMARK_ID += 1
+    return str(BOOKMARK_ID)
+
+
+def _set_citation_run_style(run, size=Pt(9)):
+    set_run_font(run, size=size)
+    run.font.superscript = True
+
+
+def add_bookmarked_reference_label(paragraph, number):
+    """Write [n] and bookmark only n, so body citations can REF it."""
+    bookmark_id = _next_bookmark_id()
+
+    open_run = paragraph.add_run("[")
+    set_run_font(open_run)
+
+    start = OxmlElement("w:bookmarkStart")
+    start.set(qn("w:id"), bookmark_id)
+    start.set(qn("w:name"), ref_bookmark_name(number))
+    start_run = paragraph.add_run()
+    start_run._element.append(start)
+
+    num_run = paragraph.add_run(number)
+    set_run_font(num_run)
+
+    end = OxmlElement("w:bookmarkEnd")
+    end.set(qn("w:id"), bookmark_id)
+    end_run = paragraph.add_run()
+    end_run._element.append(end)
+
+    close_run = paragraph.add_run("] ")
+    set_run_font(close_run)
+
+
+def add_ref_field(paragraph, number, size=Pt(9)):
+    """Insert a Word REF field to a bibliography bookmark."""
+    fld_begin = OxmlElement("w:fldChar")
+    fld_begin.set(qn("w:fldCharType"), "begin")
+    run1 = paragraph.add_run()
+    _set_citation_run_style(run1, size)
+    run1._element.append(fld_begin)
+
+    instr = OxmlElement("w:instrText")
+    instr.set(qn("xml:space"), "preserve")
+    instr.text = f" REF {ref_bookmark_name(number)} \\h \\* CHARFORMAT "
+    run2 = paragraph.add_run()
+    _set_citation_run_style(run2, size)
+    run2._element.append(instr)
+
+    fld_sep = OxmlElement("w:fldChar")
+    fld_sep.set(qn("w:fldCharType"), "separate")
+    run3 = paragraph.add_run()
+    _set_citation_run_style(run3, size)
+    run3._element.append(fld_sep)
+
+    run4 = paragraph.add_run(number)
+    _set_citation_run_style(run4, size)
+
+    fld_end = OxmlElement("w:fldChar")
+    fld_end.set(qn("w:fldCharType"), "end")
+    run5 = paragraph.add_run()
+    _set_citation_run_style(run5, size)
+    run5._element.append(fld_end)
+
+
+def add_citation(paragraph, citation_text, size=Pt(9)):
+    """Render [n] / [n,m] as superscript cross-references."""
+    open_run = paragraph.add_run("[")
+    _set_citation_run_style(open_run, size)
+
+    pos = 0
+    for m in re.finditer(r"\d+", citation_text):
+        if m.start() > pos:
+            sep_run = paragraph.add_run(citation_text[pos:m.start()])
+            _set_citation_run_style(sep_run, size)
+        add_ref_field(paragraph, m.group(0), size)
+        pos = m.end()
+
+    if pos < len(citation_text):
+        tail_run = paragraph.add_run(citation_text[pos:])
+        _set_citation_run_style(tail_run, size)
+
+    close_run = paragraph.add_run("]")
+    _set_citation_run_style(close_run, size)
+
+
+def add_runs_with_reference_fields(paragraph, text, cn_font="宋体", en_font="Times New Roman", size=Pt(12)):
+    """Add paragraph text while turning numeric [n] citations into REF fields."""
+    pos = 0
+    for m in CITATION_RE.finditer(text):
+        if m.start() > pos:
+            add_run_with_font(paragraph, text[pos:m.start()], cn_font, en_font, size)
+        add_citation(paragraph, m.group(1), size=Pt(9))
+        pos = m.end()
+    if pos < len(text):
+        add_run_with_font(paragraph, text[pos:], cn_font, en_font, size)
+
+
 def set_cell_paragraph(cell, text, style_name="表格文"):
     """设置单元格内容，使用指定样式。"""
     cell.text = ""
@@ -79,9 +187,8 @@ def set_cell_paragraph(cell, text, style_name="表格文"):
     # 清除多余间距
     p.paragraph_format.space_before = Pt(0)
     p.paragraph_format.space_after = Pt(0)
-    run = p.add_run(text)
     # 表格文样式自带字号，不覆盖
-    set_run_font(run, size=Pt(10.5))
+    add_runs_with_reference_fields(p, text, size=Pt(10.5))
     return p
 
 
@@ -301,6 +408,7 @@ def parse_and_write(md_path, doc):
 
     i = 0
     is_first_heading = True
+    in_references = False
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
@@ -335,6 +443,7 @@ def parse_and_write(md_path, doc):
                 rPr = run._element.get_or_add_rPr()
                 rFonts = rPr.get_or_add_rFonts()
                 rFonts.set(qn("w:eastAsia"), "宋体")
+            in_references = bool(re.search(r"(参考文献|references)", heading_text, re.I))
             i += 1
             continue
 
@@ -451,6 +560,15 @@ def parse_and_write(md_path, doc):
                 doc.add_paragraph()  # 表后空行
             continue
 
+        # 参考文献条目：为编号建立书签，正文 [n] 用 REF 域交叉引用到这里。
+        ref_match = re.match(r"^\[(\d+)\]\s*(.*)", stripped)
+        if ref_match:
+            p = doc.add_paragraph()
+            add_bookmarked_reference_label(p, ref_match.group(1))
+            add_runs_with_reference_fields(p, ref_match.group(2))
+            i += 1
+            continue
+
         # 无序列表
         list_match = re.match(r"^[-*]\s+(.*)", stripped)
         if list_match:
@@ -458,7 +576,7 @@ def parse_and_write(md_path, doc):
                 lm = re.match(r"^[-*]\s+(.*)", lines[i].strip())
                 if lm:
                     p = doc.add_paragraph(style="List Paragraph")
-                    add_run_with_font(p, lm.group(1))
+                    add_runs_with_reference_fields(p, lm.group(1))
                     i += 1
                 else:
                     break
@@ -470,8 +588,13 @@ def parse_and_write(md_path, doc):
             while i < len(lines):
                 om = re.match(r"^(\d+)\.\s+(.*)", lines[i].strip())
                 if om:
-                    p = doc.add_paragraph(style="List Paragraph")
-                    add_run_with_font(p, f"（{om.group(1)}）{om.group(2)}")
+                    if in_references:
+                        p = doc.add_paragraph()
+                        add_bookmarked_reference_label(p, om.group(1))
+                        add_runs_with_reference_fields(p, om.group(2))
+                    else:
+                        p = doc.add_paragraph(style="List Paragraph")
+                        add_runs_with_reference_fields(p, f"（{om.group(1)}）{om.group(2)}")
                     i += 1
                 else:
                     break
@@ -517,7 +640,7 @@ def parse_and_write(md_path, doc):
         # 普通段落
         p = doc.add_paragraph()
         p.paragraph_format.first_line_indent = Cm(1.56)
-        add_run_with_font(p, stripped)
+        add_runs_with_reference_fields(p, stripped)
         i += 1
 
     return doc
