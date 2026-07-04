@@ -162,6 +162,11 @@ always @(posedge clk or negedge rst_n) begin
                     state <= IDLE;
                 end
             end
+
+            default: begin
+                state <= IDLE;
+                busy  <= 1'b0;
+            end
         endcase
     end
 end

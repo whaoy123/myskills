@@ -35,7 +35,7 @@ module simple_req_slot (
     input  wire        resp_ready
 );
 
-    // State flow:
+    // 状态流：
     //   IDLE
     //     -> WAIT_MEM
     //     -> HOLD_RESP
@@ -50,8 +50,8 @@ module simple_req_slot (
     wire req_fire  = req_valid  && req_ready;
     wire resp_fire = resp_valid && resp_ready;
 
-    // Next-state logic only answers one question:
-    // where do we go next?
+    // next-state 逻辑只回答一个问题：
+    // 下一拍进入哪个状态？
     always @(*) begin
         next_state = state;
 
@@ -84,11 +84,6 @@ module simple_req_slot (
             state <= next_state;
     end
 
-    reg        req_ready;
-    reg        mem_rd;
-    reg [31:0] mem_addr;
-    reg        resp_valid;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             req_ready  <= 1'b1;
@@ -96,7 +91,7 @@ module simple_req_slot (
             mem_addr   <= 32'b0;
             resp_valid <= 1'b0;
         end else begin
-            // Default one-cycle behavior.
+            // 默认单周期行为。
             mem_rd <= 1'b0;
 
             case (state)
@@ -104,7 +99,7 @@ module simple_req_slot (
                     req_ready  <= 1'b1;
                     resp_valid <= 1'b0;
 
-                    if (req_valid) begin
+                    if (req_fire) begin
                         mem_rd    <= 1'b1;
                         mem_addr  <= req_addr;
                         req_ready <= 1'b0;
@@ -121,7 +116,7 @@ module simple_req_slot (
                 STATE_HOLD_RESP: begin
                     req_ready <= 1'b0;
 
-                    if (resp_ready)
+                    if (resp_fire)
                         resp_valid <= 1'b0;
                 end
 
@@ -234,7 +229,7 @@ Why it is weaker:
 This is better for B style:
 
 ```verilog
-// Used to suppress re-latching the exact same request while the old one is still pending.
+// 旧请求仍在 pending 时，避免重复锁存完全相同的请求。
 wire pending_req_matches_input;
 
 assign pending_req_matches_input =
