@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill-Driven RTL Design"
+  short_description: "以文档质询和增量确认驱动可综合 RTL 设计与验证流程"
+  default_prompt: "使用 $grill-driven-rtl-design，先审阅文档和 RTL，逐个确认协议语义与时序，再按确认顺序增量实现并验证。"
