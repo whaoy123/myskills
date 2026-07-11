@@ -186,6 +186,7 @@ while not approved and round < 5:
 1. 检测可用仿真器（优先 xsim > iverilog > QuestaSim）
 2. 编译、链接、运行
 3. 报告仿真结果
+4. 报告完成后清理本次工具生成物：`xsim.dir`、`xvlog.log`、`xvlog.pb`、临时编译库、波形数据库等。TB 源码、方案、审核记录和用户明确要求保留的波形除外；不得将这些生成物留在项目目录。
 
 如果仿真器不可用，只报告 TB 文件已写好。
 
@@ -276,7 +277,7 @@ await agent(
 
 **用户**：帮我为 `adder.v` 写个 testbench
 
-**Claude**：
+**Codex**：
 1. 读取 `adder.v`
 2. 触发 rtl-adversarial-tb 技能
 3. 创建 `adder_tb/` 目录

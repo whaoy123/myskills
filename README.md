@@ -8,8 +8,8 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 
 | Skill | Description |
 |-------|-------------|
-| [synthesizable-systemverilog](synthesizable-systemverilog/SKILL.md) | Synthesizable SystemVerilog coding rules with Must/Should/Tool-gated levels. Covers clocking, reset, CDC, types, assignments, FSM style, and synthesis boundaries. Paired with `rtl-human-style`. |
-| [rtl-human-style](rtl-human-style/SKILL.md) | Human-readable RTL and testbench style. Emphasizes readable decomposition, business-meaningful names, Chinese explanatory comments, and hand-written feel. |
+| [synthesizable-human-rtl](synthesizable-human-rtl/SKILL.md) | 合并后的可综合 RTL 规范：覆盖 SystemVerilog、时钟复位、FSM、采样窗口、错误处理，并强调人类可读的结构、语义命名和中文意图注释。 |
+| [grill-driven-rtl-design](grill-driven-rtl-design/SKILL.md) | 以设计文档质询、逐拍时序确认和增量实现驱动 RTL 设计；适合需求仍在讨论、需要边问边写的协议模块。 |
 | [rtl-adversarial-tb](rtl-adversarial-tb/SKILL.md) | Adversarial three-phase workflow for generating SV testbenches: (1) verification plan, (2) adversarial review until approved, (3) TB authoring and simulation. |
 
 ### PCB & Wiring Documentation
