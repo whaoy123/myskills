@@ -1,0 +1,4 @@
+interface:
+  display_name: "Synthesizable Human RTL"
+  short_description: "综合安全且易读的 SystemVerilog RTL 工作流"
+  default_prompt: "Use $synthesizable-human-rtl to implement or review this synthesizable RTL."
