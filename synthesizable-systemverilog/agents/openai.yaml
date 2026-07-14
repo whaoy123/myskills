@@ -1,4 +1,0 @@
-interface:
-  display_name: "Synthesizable SystemVerilog"
-  short_description: "RTL design rules for synthesizable SystemVerilog"
-  default_prompt: "Use $synthesizable-systemverilog to review this RTL for synthesis correctness, simulation mismatch risks, and tool-gated constructs."

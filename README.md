@@ -10,8 +10,6 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 |-------|-------------|
 | [rtl-stepwise-coding](rtl-stepwise-coding/SKILL.md) | Stepwise RTL collaboration workflow: one key question per round, confirmed design rules, small synthesizable increments, project-rule awareness, and verification handoff. Uses `synthesizable-human-rtl` for RTL coding standards. |
 | [synthesizable-human-rtl](synthesizable-human-rtl/SKILL.md) | Current preferred RTL writing standard for synthesizable Verilog/SystemVerilog: synthesis-safe design, readable handwritten structure, semantic names, Chinese intent comments, and minimal incremental implementation. |
-| [synthesizable-systemverilog](synthesizable-systemverilog/SKILL.md) | Synthesizable SystemVerilog coding rules with Must/Should/Tool-gated levels. Covers clocking, reset, CDC, types, assignments, FSM style, and synthesis boundaries. Paired with `rtl-human-style`. |
-| [rtl-human-style](rtl-human-style/SKILL.md) | Human-readable RTL and testbench style. Emphasizes readable decomposition, business-meaningful names, Chinese explanatory comments, and hand-written feel. |
 | [rtl-adversarial-tb](rtl-adversarial-tb/SKILL.md) | Adversarial three-phase workflow for generating SV testbenches: (1) verification plan, (2) adversarial review until approved, (3) TB authoring and simulation. |
 
 ### PCB & Wiring Documentation
