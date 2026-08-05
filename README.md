@@ -25,6 +25,13 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 |-------|-------------|
 | [md-to-docx](md-to-docx/SKILL.md) | Convert Markdown documents to Word `.docx` with template-aware formatting. Designed for Chinese academic, course, and technical reports with mixed Chinese/English typography, SEQ caption numbering, and citation formatting. |
 
+### Citation & Bibliography (GB/T 7714—2025)
+
+| Skill | Description |
+|-------|-------------|
+| [gbt7714-2025-citation-generator](gbt7714-2025-citation-generator/SKILL.md) | 从 DOI、URL、正式出版页面、题名信息或论文 PDF 中提取并核实元数据，按 GB/T 7714—2025 生成期刊论文、会议论文、图书、学位论文、报告、标准、专利、网站和网页等参考文献。 |
+| [gbt7714-2025-citation-auditor](gbt7714-2025-citation-auditor/SKILL.md) | 检查和修订现有参考文献是否符合 GB/T 7714—2025，并可通过正式网页或论文 PDF 核验作者、题名、期刊或会议名称、年份、卷期、页码、文章编号、出版项、报告编号和 DOI。 |
+
 ## Usage
 
 Each skill lives in its own directory with a `SKILL.md` that serves as the skill definition. Some skills include supplementary files:
