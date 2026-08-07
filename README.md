@@ -36,16 +36,16 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 
 | Skill | Description |
 |-------|-------------|
-| [dida-cli](dida-cli/SKILL.md) | 通过本地 DIDA CLI 安全读写滴答清单/Dida365：任务、清单、标签、专注记录、习惯与倒计时的查询和更新，不做规划决策。 |
-| [dida-daily-planner](dida-daily-planner/SKILL.md) | 构建/修订滴答清单每日时间块日程：非重叠时段、固定/受保护/可移动块、依赖检查、当前时区、天气任务更新、容量、休息与重排。 |
-| [dida-planning-core](dida-planning-core/README.md) | dida 系列共享核心：任务字段契约、系统规范、调度/依赖/进度/估算/记忆策略引擎、迁移脚本与测试。 |
-| [dida-planning-memory](dida-planning-memory/SKILL.md) | 保存/检索/更新/遗忘 Dida 规划记忆，不复制任务状态或配置文件。 |
-| [dida-planning-profile](dida-planning-profile/SKILL.md) | 初始化/检查/更新“系统配置”NOTE 任务：工作时长、精力、移动权限、估时覆盖、任务体/标签协议、时区、天气与健身。 |
-| [dida-task-breakdown](dida-task-breakdown/SKILL.md) | 将父任务拆解为阶段、可执行子任务、完成标准与可执行依赖。 |
-| [dida-task-capture](dida-task-capture/SKILL.md) | 捕获任务/想法/提醒/项目到滴答清单：收集箱、简洁标题、正文、父任务、清单选择与隐私处理。 |
-| [dida-task-estimator](dida-task-estimator/SKILL.md) | 估算/重估任务日历占用：任务特征、自底向上范围、相似完成任务、置信度收缩与风险覆盖。 |
-| [dida-task-progress](dida-task-progress/SKILL.md) | 开始/暂停/等待/恢复/更新进度/完成/删除任务，记录专注与实际时间证据，更新父任务进度并追加校准批注。 |
-| [dida-weekly-review](dida-weekly-review/SKILL.md) | 周复盘：逾期与截止风险、停滞父任务、等待依赖、估时绩效、容量与下周任务池。 |
+| [dida-cli](dida-planning-skills/dida-cli/SKILL.md) | 通过本地 DIDA CLI 安全读写滴答清单/Dida365：任务、清单、标签、专注记录、习惯与倒计时的查询和更新，不做规划决策。 |
+| [dida-daily-planner](dida-planning-skills/dida-daily-planner/SKILL.md) | 构建/修订滴答清单每日时间块日程：非重叠时段、固定/受保护/可移动块、依赖检查、当前时区、天气任务更新、容量、休息与重排。 |
+| [dida-planning-core](dida-planning-skills/dida-planning-core/README.md) | dida 系列共享核心：任务字段契约、系统规范、调度/依赖/进度/估算/记忆策略引擎、迁移脚本与测试。 |
+| [dida-planning-memory](dida-planning-skills/dida-planning-memory/SKILL.md) | 保存/检索/更新/遗忘 Dida 规划记忆，不复制任务状态或配置文件。 |
+| [dida-planning-profile](dida-planning-skills/dida-planning-profile/SKILL.md) | 初始化/检查/更新“系统配置”NOTE 任务：工作时长、精力、移动权限、估时覆盖、任务体/标签协议、时区、天气与健身。 |
+| [dida-task-breakdown](dida-planning-skills/dida-task-breakdown/SKILL.md) | 将父任务拆解为阶段、可执行子任务、完成标准与可执行依赖。 |
+| [dida-task-capture](dida-planning-skills/dida-task-capture/SKILL.md) | 捕获任务/想法/提醒/项目到滴答清单：收集箱、简洁标题、正文、父任务、清单选择与隐私处理。 |
+| [dida-task-estimator](dida-planning-skills/dida-task-estimator/SKILL.md) | 估算/重估任务日历占用：任务特征、自底向上范围、相似完成任务、置信度收缩与风险覆盖。 |
+| [dida-task-progress](dida-planning-skills/dida-task-progress/SKILL.md) | 开始/暂停/等待/恢复/更新进度/完成/删除任务，记录专注与实际时间证据，更新父任务进度并追加校准批注。 |
+| [dida-weekly-review](dida-planning-skills/dida-weekly-review/SKILL.md) | 周复盘：逾期与截止风险、停滞父任务、等待依赖、估时绩效、容量与下周任务池。 |
 
 ### Hardware Design / Altium & Analog
 
