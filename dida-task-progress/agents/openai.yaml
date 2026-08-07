@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答进度与完成"
+  short_description: "更新任务状态、进度、完成记录与实际耗时"
+  default_prompt: "使用 $dida-task-progress 更新这个滴答任务的执行状态。"
+policy:
+  allow_implicit_invocation: true

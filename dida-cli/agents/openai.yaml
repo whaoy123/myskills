@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答 CLI 执行"
+  short_description: "安全读写滴答任务、评论与专注记录"
+  default_prompt: "使用 $dida-cli 精确执行这次滴答清单操作，并回读验证。"
+policy:
+  allow_implicit_invocation: true

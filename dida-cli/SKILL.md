@@ -1,0 +1,70 @@
+---
+name: dida-cli
+description: Execute safe reads and writes through the local DIDA CLI for 滴答清单/Dida365. Use when another planning skill or the user needs to list, resolve, create, update, move, complete, delete, comment on, or inspect Dida tasks, lists, tags, focus records, habits, or countdowns. Do not make planning, prioritization, decomposition, or estimation decisions.
+---
+
+# DIDA CLI execution layer
+
+Act as a thin, verifiable adapter around the installed `dida` command. Higher-level skills decide what should happen; this skill resolves IDs, executes the exact change, and verifies the saved state.
+
+## Start of a Dida session
+
+1. Run `dida --version` and `dida auth status`.
+2. If unavailable, explain that Node.js 20+ and `npm install -g @suibiji/dida-cli` are required. Install only when requested or approved.
+3. If unauthenticated, use `dida auth login`. Never request tokens, cookies, or credentials in chat.
+4. Before an unfamiliar command or flag, run the relevant `--help`. Installed help is authoritative; bundled references are only a baseline.
+
+## Resolve before writing
+
+- Prefer `--json` for all machine-read operations.
+- Resolve lists with `dida project list --json`.
+- Resolve tasks from exact title plus project, parent, date, tags, or status.
+- Never invent IDs or select the first fuzzy match silently.
+- Keep `projectId` and `taskId` together.
+- If several candidates remain, return the short candidate set rather than writing.
+
+## Write protocol
+
+For create, update, move, complete, delete, comment, or focus changes:
+
+1. Read the current object.
+2. Preserve unspecified fields.
+3. Execute only the intended fields.
+4. Read back the object or destination list.
+5. Report actual saved values.
+
+After timeout or ambiguous network failure, read before retrying to prevent duplicate tasks or comments. Higher-level skills may add an operation to the shared pending-sync queue.
+
+## Dates and time
+
+- Resolve relative dates to absolute timestamps using the user's current local timezone.
+- Do not hard-code UTC+8 when the user is elsewhere.
+- Preserve date-only tasks as all-day when supported.
+- Never change a hard deadline unless the user explicitly directs it.
+
+## Destructive operations
+
+An exact request to delete a uniquely resolved task authorizes that deletion. Before deleting a task with children, comments, or focus history, show the impact. Vague requests such as “清理旧任务” require a preview. Verify deletion afterward.
+
+## Planner integration
+
+When called by the planning skills:
+
+- Preserve the natural-language body and unknown fields in `【Planner】...【/Planner】`.
+- Add history through task comments; do not rewrite old comments.
+- Use Dida native estimated duration, priority, dates, parent IDs, tags, recurrence, and completion state where supported. Treat `role: memory_category|memory` records as ordinary Dida objects with no scheduling/estimate side effects.
+- Inspect `references/planner-integration.md` before modifying Planner-managed content.
+
+## Failure handling
+
+- `command not found`: report missing CLI; do not substitute another product.
+- HTTP 401/auth failure: check auth and request browser login.
+- Unknown option: inspect help and adapt once.
+- Not found: refresh before concluding.
+- Malformed JSON: retain diagnostic stderr but redact credentials or headers.
+
+## References
+
+- Read `references/commands.md` for command baselines.
+- Read `references/workflows.md` for ID resolution and write verification.
+- Read `references/planner-integration.md` for Planner body/comment rules.

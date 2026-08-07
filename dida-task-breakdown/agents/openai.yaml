@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答任务拆解"
+  short_description: "建立父子任务、完成标准与依赖关系"
+  default_prompt: "使用 $dida-task-breakdown 把这个目标拆成可执行的滴答子任务。"
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答任务估时"
+  short_description: "按特征、相似任务和风险缓冲估算时长"
+  default_prompt: "使用 $dida-task-estimator 估算这个任务需要预留的日历时间。"
+policy:
+  allow_implicit_invocation: true

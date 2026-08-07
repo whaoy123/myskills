@@ -1,0 +1,4 @@
+interface:
+  display_name: "模拟采集误差预算"
+  short_description: "计算分压、隔离、运放、滤波、基准和 ADC 的总误差"
+  default_prompt: "使用 $analog-acquisition-error-budget 将模拟采集链的全部误差折算到被测输入端，区分比例、固定、满量程、温漂、动态和随机误差，并分别给出最坏值、RSS 以及校准前后结果。"

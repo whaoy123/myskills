@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答任务记录"
+  short_description: "把事项可靠记录到收集箱、领域清单或父任务"
+  default_prompt: "使用 $dida-task-capture 把这件事记录到滴答，并保持信息精炼。"
+policy:
+  allow_implicit_invocation: true

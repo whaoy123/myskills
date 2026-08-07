@@ -1,0 +1,144 @@
+{
+  "measurement": {
+    "name": "POR A-N voltage acquisition",
+    "value": 115.0,
+    "unit": "Vrms input-equivalent",
+    "full_scale_input": 200.0,
+    "temperature_reference_c": 25.0,
+    "temperature_operating_c": 75.0,
+    "frequency_hz": 400.0,
+    "random_sigma_multiplier": 3.0,
+    "calibration_mode": "two_point",
+    "nodes": {
+      "system_input": 1.0,
+      "divider_output": 0.0035307,
+      "isolator_output": 0.0070614,
+      "adc_input": 0.0070614
+    },
+    "adc": {
+      "bits": 16,
+      "input_span_v": 4.096
+    },
+    "result_algorithm": "rms_mean_removed"
+  },
+  "sources": [
+    {
+      "name": "分压比初始误差",
+      "component": "8.10MΩ/28.7kΩ divider",
+      "spec_type": "percent_reading",
+      "value": 0.2,
+      "combination": "systematic",
+      "calibration_class": "gain",
+      "basis": "maximum",
+      "notes": "示例假设；正式值应由实际电阻容差精确计算"
+    },
+    {
+      "name": "分压器比例温漂",
+      "component": "divider",
+      "spec_type": "ppm_per_c_reading",
+      "value": 25.0,
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "maximum",
+      "notes": "示例按 tracking TCR 25 ppm/°C"
+    },
+    {
+      "name": "AMC3330 初始增益误差",
+      "component": "AMC3330",
+      "spec_type": "percent_reading",
+      "value": 0.2,
+      "combination": "systematic",
+      "calibration_class": "gain",
+      "basis": "maximum"
+    },
+    {
+      "name": "AMC3330 增益温漂",
+      "component": "AMC3330",
+      "spec_type": "ppm_per_c_reading",
+      "value": 45.0,
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "maximum"
+    },
+    {
+      "name": "AMC3330 输入失调",
+      "component": "AMC3330",
+      "spec_type": "local_offset_v",
+      "value": 0.0003,
+      "node": "divider_output",
+      "combination": "systematic",
+      "calibration_class": "offset",
+      "basis": "maximum",
+      "notes": "这是瞬时输入等效偏移；RMS 算法去均值后影响不同"
+    },
+    {
+      "name": "AMC3330 失调温漂",
+      "component": "AMC3330",
+      "spec_type": "local_offset_uv_per_c",
+      "value": 4.0,
+      "node": "divider_output",
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "maximum"
+    },
+    {
+      "name": "ADC/基准初始增益误差",
+      "component": "ADC and reference",
+      "spec_type": "percent_reading",
+      "value": 0.1,
+      "combination": "systematic",
+      "calibration_class": "gain",
+      "basis": "hypothetical maximum"
+    },
+    {
+      "name": "ADC/基准增益温漂",
+      "component": "ADC and reference",
+      "spec_type": "ppm_per_c_reading",
+      "value": 10.0,
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "hypothetical maximum"
+    },
+    {
+      "name": "ADC INL",
+      "component": "ADC",
+      "spec_type": "lsb",
+      "value": 2.0,
+      "node": "adc_input",
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "hypothetical maximum"
+    },
+    {
+      "name": "ADC 量化噪声",
+      "component": "ADC",
+      "spec_type": "lsb",
+      "value": 0.2886751346,
+      "node": "adc_input",
+      "combination": "random",
+      "calibration_class": "none",
+      "basis": "rms"
+    },
+    {
+      "name": "校准源不确定度",
+      "component": "calibrator",
+      "spec_type": "percent_reading",
+      "value": 0.05,
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "hypothetical maximum"
+    },
+    {
+      "name": "一阶模拟低通标称衰减",
+      "component": "RC filter",
+      "spec_type": "first_order_lowpass_attenuation",
+      "value": 0.0,
+      "frequency_hz": 400.0,
+      "cutoff_hz": 6800.0,
+      "combination": "systematic",
+      "calibration_class": "gain",
+      "basis": "calculated",
+      "notes": "在同频率增益校准中可吸收标称衰减；元件容差和频率变化残差需另列"
+    }
+  ]
+}

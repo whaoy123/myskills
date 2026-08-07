@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答长期记忆"
+  short_description: "保存、检索、更新和遗忘长期工作记忆"
+  default_prompt: "使用 $dida-planning-memory 保存或读取一条长期记忆。"
+policy:
+  allow_implicit_invocation: true

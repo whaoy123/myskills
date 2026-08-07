@@ -1,0 +1,66 @@
+{
+  "measurement": {
+    "name": "被测量名称",
+    "value": 115.0,
+    "unit": "Vrms",
+    "full_scale_input": 200.0,
+    "temperature_reference_c": 25.0,
+    "temperature_operating_c": 75.0,
+    "frequency_hz": 400.0,
+    "random_sigma_multiplier": 3.0,
+    "calibration_mode": "none",
+    "nodes": {
+      "system_input": 1.0,
+      "divider_output": 0.0035307,
+      "isolator_output": 0.0070614,
+      "adc_input": 0.0070614
+    },
+    "adc": {
+      "bits": 16,
+      "input_span_v": 4.096
+    },
+    "result_algorithm": "rms_mean_removed"
+  },
+  "sources": [
+    {
+      "name": "分压比初始误差",
+      "component": "divider",
+      "spec_type": "percent_reading",
+      "value": 0.2,
+      "combination": "systematic",
+      "calibration_class": "gain",
+      "basis": "maximum",
+      "notes": "数值应由上下臂容差精确计算"
+    },
+    {
+      "name": "隔离器输入失调",
+      "component": "isolation amplifier",
+      "spec_type": "local_offset_v",
+      "value": 0.0003,
+      "node": "divider_output",
+      "combination": "systematic",
+      "calibration_class": "offset",
+      "basis": "maximum"
+    },
+    {
+      "name": "ADC INL",
+      "component": "ADC",
+      "spec_type": "lsb",
+      "value": 2.0,
+      "node": "adc_input",
+      "combination": "systematic",
+      "calibration_class": "none",
+      "basis": "maximum"
+    },
+    {
+      "name": "ADC 量化噪声",
+      "component": "ADC",
+      "spec_type": "lsb",
+      "value": 0.2886751346,
+      "node": "adc_input",
+      "combination": "random",
+      "calibration_class": "none",
+      "basis": "rms"
+    }
+  ]
+}

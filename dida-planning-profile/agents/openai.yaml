@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答规划偏好"
+  short_description: "初始化和维护作息、权限、估时与协议配置"
+  default_prompt: "使用 $dida-planning-profile 更新我的稳定规划偏好。"
+policy:
+  allow_implicit_invocation: true

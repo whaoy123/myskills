@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答周复盘"
+  short_description: "分析完成情况、截止风险、估时与下周任务池"
+  default_prompt: "使用 $dida-weekly-review 基于滴答数据做本周复盘。"
+policy:
+  allow_implicit_invocation: true

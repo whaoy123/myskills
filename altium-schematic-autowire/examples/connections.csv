@@ -1,0 +1,7 @@
+NetName,Ref,Pin,PinName,EndpointType,Direction,WireMode,LabelSide,Channel,Comment
+VIN_A,J1,1,,pin,passive,label,right,A,Input
+VIN_A,R1,1,,pin,passive,label,left,A,
+VIN_A_DIV,R1,2,,pin,passive,label,right,A,
+VIN_A_DIV,U1,2,INP,pin,input,label,left,A,
+AGND_PRI,J1,2,,pin,power,label,right,A,
+AGND_PRI,U1,3,INN,pin,power,label,left,A,
