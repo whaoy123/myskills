@@ -12,6 +12,7 @@ TEMPLATES = {
     "knowledge_model.yaml": {"schema_version": 1, "inherited": [], "known": [], "current_beliefs": [], "unclear": [], "confirmed_updates": [], "promotion_candidates": []},
     "research_questions.yaml": {"schema_version": 1, "questions": []},
     "open_questions.yaml": {"schema_version": 1, "questions": []},
+    "pitfalls.yaml": {"schema_version": 1, "items": []},
     "decisions.yaml": {"schema_version": 1, "decisions": []},
     "project_plan.yaml": {"schema_version": 1, "revision": 1, "stages": []},
     "dida_handoff.yaml": {"schema_version": 1, "source_plan_revision": 1, "status": "DRAFT", "approval_required": True, "work_packages": []},
