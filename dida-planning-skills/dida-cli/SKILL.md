@@ -1,6 +1,6 @@
 ---
 name: dida-cli
-description: Execute safe reads and writes through the local DIDA CLI for 滴答清单/Dida365. Use when another planning skill or the user needs to list, resolve, create, update, move, complete, delete, comment on, or inspect Dida tasks, lists, tags, focus records, habits, or countdowns. Do not make planning, prioritization, decomposition, or estimation decisions.
+description: Execute safe individual or batched reads and writes through the local DIDA CLI for 滴答清单/Dida365. Use when another planning skill or the user needs to list, resolve, create, update, move, complete, delete, comment on, or inspect Dida tasks, lists, tags, focus records, habits, or countdowns. Do not make planning, prioritization, decomposition, or estimation decisions.
 ---
 
 # DIDA CLI execution layer
@@ -34,6 +34,17 @@ For create, update, move, complete, delete, comment, or focus changes:
 5. Report actual saved values.
 
 After timeout or ambiguous network failure, read before retrying to prevent duplicate tasks or comments. Higher-level skills may add an operation to the shared pending-sync queue.
+
+## Batch helper
+
+For several related reads, or a pre-reviewed set of creates, updates, parent assignments, and comments, use `scripts/dida_batch.py` instead of spawning many individual shell commands.
+
+- Run `python scripts/dida_batch.py --help` before the first use in a session.
+- Use `scheduled` for a date-window read and `search` for project-scoped title/body lookup. Require an explicit project unless a broad search is genuinely needed.
+- Put writes in a JSON plan and run `plan --input <file>` first. It is dry-run by default; use `--apply` only after resolving IDs and confirming the write scope.
+- A plan can create tasks, use `@key` to attach later tasks to newly created parents, update native dates/estimates/parent IDs, and append idempotent comments. The helper reads each updated task first and verifies every saved result.
+- Keep delete, completion, and cross-project move operations on the normal CLI path; inspect their impact individually.
+- If a plan fails midway, do not rerun it blindly. Read the reported objects, then prepare a narrowed follow-up plan.
 
 ## Dates and time
 
