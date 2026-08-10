@@ -7,6 +7,12 @@ description: Execute safe reads and writes through the local DIDA CLI for 滴答
 
 Act as a thin, verifiable adapter around the installed `dida` command. Higher-level skills decide what should happen; this skill resolves IDs, executes the exact change, and verifies the saved state.
 
+## Runtime requirement
+
+- Never run Dida CLI commands in the default sandbox. Use an approved non-sandbox execution path for authentication, reads, writes, and verification.
+- The CLI stores its access token under the user's profile (`%USERPROFILE%\\.config\\dida-cli\\config.json`); sandbox isolation can make a valid token appear absent and produce a false unauthenticated result.
+- If non-sandbox execution is unavailable or rejected, report the blocker and do not claim the account is logged out or request another login based only on the sandboxed result.
+
 ## Start of a Dida session
 
 1. Run `dida --version` and `dida auth status`.

@@ -7,6 +7,12 @@ description: Build, revise, and write a Dida daily schedule with non-overlapping
 
 Create a real Dida schedule, not a separate Markdown daily plan.
 
+## Runtime requirement
+
+- All Dida CLI reads and writes for this skill must run outside the default sandbox, using an approved non-sandbox execution path.
+- The Dida CLI stores its access token under the user's profile (`%USERPROFILE%\\.config\\dida-cli\\config.json`); a sandboxed run may falsely report that the account is unauthenticated.
+- If non-sandbox execution is unavailable or rejected, report the execution blocker. Do not infer that the user is logged out or ask them to re-authenticate solely from the sandboxed status result.
+
 ## Required reads
 
 1. Determine current date, location timezone, and requested planning date.
