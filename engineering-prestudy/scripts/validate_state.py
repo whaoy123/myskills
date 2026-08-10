@@ -15,6 +15,7 @@ REQUIRED = [
     "sources.csv",
     "evidence.jsonl",
     "open_questions.yaml",
+    "pitfalls.yaml",
     "decisions.yaml",
     "project_plan.yaml",
     "dida_handoff.yaml",
@@ -24,6 +25,9 @@ RQ_STATUS = {"OPEN", "ACTIVE", "BLOCKED", "SATURATED", "CLOSED"}
 OQ_TYPES = {"MISSING_INFORMATION", "SOURCE_CONFLICT", "NEEDS_EXPERIMENT", "NEEDS_ENGINEERING_ANALYSIS", "NEEDS_USER_DECISION"}
 OQ_IMPACT = {"LOW", "MEDIUM", "HIGH", "BLOCKING"}
 DECISION_STATUS = {"PROPOSED", "CONFIRMED", "SUPERSEDED", "REJECTED"}
+PITFALL_IMPACT = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+PITFALL_ACTION = {"WATCH", "DESIGN_CONSTRAINT", "VERIFY", "BLOCKER"}
+PITFALL_STATUS = {"OPEN", "MITIGATED", "ACCEPTED", "NOT_APPLICABLE"}
 
 
 def load_yaml(path: Path) -> dict:
@@ -55,6 +59,22 @@ def validate(state: Path) -> list[str]:
             errors.append(f"open question {item.get('id', '?')}: invalid type {item.get('type')}")
         if item.get("impact") and item.get("impact") not in OQ_IMPACT:
             errors.append(f"open question {item.get('id', '?')}: invalid impact {item.get('impact')}")
+
+    pitfalls = load_yaml(state / "pitfalls.yaml")
+    for item in pitfalls.get("items", []):
+        pid = item.get("id", "?")
+        if item.get("impact") and item.get("impact") not in PITFALL_IMPACT:
+            errors.append(f"pitfall {pid}: invalid impact {item.get('impact')}")
+        if item.get("action") and item.get("action") not in PITFALL_ACTION:
+            errors.append(f"pitfall {pid}: invalid action {item.get('action')}")
+        if item.get("status") and item.get("status") not in PITFALL_STATUS:
+            errors.append(f"pitfall {pid}: invalid status {item.get('status')}")
+        if not item.get("failure_mode"):
+            errors.append(f"pitfall {pid}: missing failure_mode")
+        if not item.get("mitigation") and item.get("status") != "NOT_APPLICABLE":
+            errors.append(f"pitfall {pid}: missing mitigation")
+        if item.get("action") == "BLOCKER" and item.get("status") == "ACCEPTED":
+            errors.append(f"pitfall {pid}: BLOCKER cannot be ACCEPTED without mitigation")
 
     decisions = load_yaml(state / "decisions.yaml")
     for item in decisions.get("decisions", []):
