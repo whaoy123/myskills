@@ -1,0 +1,25 @@
+schema_version: 1
+file: search_log.csv
+columns:
+  - SearchID
+  - QuestionID
+  - Timestamp
+  - Phase
+  - Query
+  - Scope
+  - ResultSummary
+  - NewRoute
+  - MateriallyNew
+  - NextAction
+
+phase:
+  - orientation
+  - seed
+  - snowball
+  - contrarian
+  - pitfall
+
+rules:
+  - Log coherent search passes, not every click.
+  - SATURATED questions should have log evidence supporting low marginal value.
+  - MateriallyNew should be recorded as a boolean-like value.

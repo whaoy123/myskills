@@ -1,0 +1,47 @@
+schema_version: 1
+file: sources.csv
+columns:
+  - SourceID
+  - Type
+  - Title
+  - Publisher
+  - Year
+  - URL
+  - LocalPath
+  - Tier
+  - Authority
+  - Independence
+  - WhyUseful
+  - ReadingPriority
+  - Status
+  - RetentionRole
+  - RetentionReason
+
+tier:
+  - L1
+  - L2
+  - L3
+  - L4
+
+authority:
+  - LOW
+  - MEDIUM
+  - HIGH
+
+independence:
+  - LOW
+  - MEDIUM
+  - HIGH
+  - N/A
+
+retention_role:
+  - NONE
+  - REFERENCE
+  - IMPLEMENTATION
+  - EXCEPTION
+
+rules:
+  - Authority and Independence are separate judgments.
+  - Status RETAINED requires LocalPath and a non-NONE RetentionRole.
+  - EXCEPTION retention requires RetentionReason.
+  - Normal retained-artifact budget is defined by project.research_policy.retained_artifact_budget, default 2.

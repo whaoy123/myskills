@@ -1,6 +1,6 @@
 ---
 name: engineering-prestudy
-description: Orchestrate an engineering or technical prestudy from an initially unfamiliar topic through understanding, current-state research, predecessor implementation study, pitfall/hazard discovery, evidence collection, design tradeoffs, and an implementation plan. Preserve changing goals, separate FACT/INFERENCE/DECISION, maintain open questions, pitfalls and stop conditions, reuse user context, and hand approved work packages to Dida planning without directly owning scheduling.
+description: Orchestrate an engineering or technical prestudy from an initially unfamiliar topic through understanding, current-state research, evidence collection, predecessor/pitfall analysis, design tradeoffs, and an implementation plan. Preserve changing goals, separate FACT/INFERENCE/DECISION, maintain open questions and stop conditions, reuse user context, and hand approved work packages to Dida planning without directly owning scheduling.
 ---
 
 # Engineering Prestudy
@@ -11,8 +11,8 @@ This is the orchestration skill. It does not duplicate specialist logic.
 
 - `user-context-profile` -> unified user background/knowledge/preferences.
 - `research-understanding` -> understanding loop and project knowledge model.
-- `research-landscape` -> current-state research, evidence, predecessor implementations, pitfall discovery, source library, reusable artifacts.
-- `research-design-planning` -> trade studies, pitfall routing, decisions, staged deliverables, Dida handoff.
+- `research-landscape` -> current-state research, evidence, predecessor implementations, pitfalls, and retained source library.
+- `research-design-planning` -> trade studies, decisions, staged deliverables, pitfall routing, and Dida handoff.
 
 ## Fixed runtime project structure
 
@@ -23,6 +23,7 @@ This is the orchestration skill. It does not duplicate specialist logic.
 │   ├── knowledge_model.yaml
 │   ├── research_questions.yaml
 │   ├── sources.csv
+│   ├── search_log.csv
 │   ├── evidence.jsonl
 │   ├── open_questions.yaml
 │   ├── pitfalls.yaml
@@ -38,6 +39,11 @@ This is the orchestration skill. It does not duplicate specialist logic.
 │   └── other/
 ├── notes/
 ├── reports/
+│   ├── research_brief.md
+│   ├── current_understanding.md
+│   ├── research_landscape.md
+│   ├── implementation_plan.md
+│   └── FINAL.md
 └── history/
 ```
 
@@ -64,9 +70,11 @@ Do not demand a perfect research question up front. The research goal may evolve
 3. Create or load `.prestudy/research_state/`.
 4. Record `initial_goal` and `current_goal` separately.
 5. Inventory existing user-provided sources before browsing for duplicates.
-6. Create the first research questions, open-question pool, and empty pitfall register.
+6. Create the first research questions and open-question pool.
 7. Produce `reports/research_brief.md` before broad research.
 8. Enter the most appropriate state: `UNDERSTAND`, `RESEARCH`, or `DESIGN_PLAN`.
+
+Use `scripts/init_project.py` for deterministic state/report scaffolding.
 
 ## State machine
 
@@ -77,7 +85,7 @@ UNDERSTAND <-> RESEARCH <-> DESIGN_PLAN
 The flow is intentionally reversible.
 
 - If research exposes a prerequisite concept gap -> return to `UNDERSTAND`.
-- If design reveals missing evidence or an unbounded high-impact pitfall -> return to `RESEARCH`.
+- If design reveals missing evidence -> return to `RESEARCH`.
 - Do not force stage completion because the previous stage already ran once.
 
 ## Goal revision
@@ -101,7 +109,7 @@ Never present an inference as if the source explicitly stated it.
 
 ## Open questions
 
-Every unresolved information/analysis/decision item belongs in `open_questions.yaml`.
+Every unresolved item belongs in `open_questions.yaml`.
 
 Types:
 
@@ -117,42 +125,42 @@ Only actionable/blocking questions become Dida candidates.
 
 ## Pitfalls
 
-Material failure modes and hidden engineering constraints belong in `pitfalls.yaml`, not mixed into generic open questions.
+`pitfalls.yaml` is the authoritative register for discovered predecessor failures, hidden constraints, novice traps, safety hazards, integration risks, and verification-sensitive conditions.
 
-A pitfall captures what can go wrong, why, consequence, applicable conditions, mitigation, evidence, impact, action and status.
+A pitfall is not just prose. It must be routed later as one or more of:
 
-Action routing:
+- `WATCH`
+- `DESIGN_CONSTRAINT`
+- `VERIFY`
+- `BLOCKER`
 
-- `WATCH` -> keep visible as residual risk/attention item;
-- `DESIGN_CONSTRAINT` -> make it an explicit design requirement;
-- `VERIFY` -> create an acceptance/calculation/test/inspection gate;
-- `BLOCKER` -> prevent dependent design/planning approval until resolved or mitigated.
+Important pitfalls must remain traceable from evidence -> pitfall -> design/verification control -> project stage/work package.
 
-Examples include insulation/creepage constraints, floating/common-mode measurement hazards, unsafe transformer/CT states, thermal/current derating, protocol corner cases, CDC/reset issues, version/toolchain traps, and misleading verification assumptions.
+## Search log and saturation
 
-Do not add generic checklist items that are not plausibly relevant to the current project.
+`search_log.csv` records what was searched, for which research question, what changed, and whether the latest pass produced materially new information.
 
-## Stop conditions
+A `SATURATED` research question must explicitly record all applicable stop-condition flags. It is not enough to simply set `status: SATURATED`.
 
-Research questions may become `SATURATED` when their configured stop rule is met. Typical criteria:
+Do not equate saturation with certainty.
 
-- mechanism sufficiently understood;
-- main representative routes known;
-- at least one credible predecessor implementation found when applicable;
-- relevant high-impact pitfalls actively searched for and recorded/handled;
-- important claims supported by adequate evidence;
-- blocking unknowns or risks resolved or routed;
-- further searching has low expected decision value.
+## Reports
 
-Do not equate saturation with certainty and do not require every non-blocking question or watch item to disappear.
+Fixed report roles:
+
+- `research_brief.md` -> initial framing and known/unknown boundary.
+- `current_understanding.md` -> current mental model and remaining conceptual gaps.
+- `research_landscape.md` -> current state, predecessor implementations, borrowable patterns, pitfalls, retained 1–2 core references.
+- `implementation_plan.md` -> selected route, stages, outputs, acceptance, design constraints, verification gates.
+- `FINAL.md` -> compact final overview for the user; never use it as the authoritative state database.
+
+Use `scripts/build_final.py` to regenerate `FINAL.md` from current state/reports.
 
 ## Dida boundary
 
 Research determines what should be done and what outputs/acceptance criteria are required. Dida owns task breakdown, estimation, scheduling, and progress.
 
 Research writes `dida_handoff.yaml` only. It must not silently mutate the user's task plan.
-
-Actionable pitfall controls may become work packages, especially `DESIGN_CONSTRAINT`, `VERIFY`, and `BLOCKER` items. Low-impact `WATCH` items should not automatically become tasks.
 
 If Dida skills are available, hand off approved work packages to:
 
@@ -161,8 +169,39 @@ If Dida skills are available, hand off approved work packages to:
 3. `dida-task-capture`
 4. `dida-daily-planner`
 
+`dida_handoff.yaml` must not pre-invent calendar dates, priorities, or estimated durations. Those belong to Dida.
+
+Use `scripts/build_dida_bridge.py` only after handoff status is `APPROVED`; it emits a neutral bridge record with no schedule/estimate fields populated.
+
 Changes caused by a revised research conclusion require user approval before existing Dida tasks are removed, postponed, or materially changed.
+
+## Quality gates
+
+Before calling a prestudy complete:
+
+1. Run `scripts/validate_state.py`.
+2. Run `scripts/prestudy_audit.py`.
+3. Resolve all ERRORs.
+4. Review WARNs; do not ignore safety/feasibility warnings.
+5. Regenerate `FINAL.md`.
+6. If handing off to Dida, export the bridge only after user approval.
+
+The audit checks include:
+
+- state/schema integrity;
+- duplicate IDs;
+- FACT/INFERENCE traceability;
+- explicit saturation evidence;
+- retained-source budget;
+- retained-source reading notes and local-file presence;
+- HIGH/CRITICAL pitfall evidence/mitigation;
+- blocker leakage into approved handoff;
+- pitfall -> project-plan traceability;
+- confirmed-decision evidence;
+- final report scaffolding.
 
 ## Distribution boundary
 
 The skill package must never contain real `.prestudy/`, user context, downloaded libraries, Dida task data, credentials, or local project paths.
+
+Run the existing distribution audit before publishing or sharing the skill package.

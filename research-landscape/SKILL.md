@@ -1,6 +1,6 @@
 ---
 name: research-landscape
-description: Research the current technical landscape for an engineering-prestudy project with an engineering-prestudy bias: find enough authoritative evidence, representative predecessor implementations, and known engineering pitfalls to understand what exists, what has been achieved, how predecessors built it, what commonly goes wrong, what is worth borrowing, and what remains blocking; use iterative search, seed selection, limited snowballing, source/evidence tracking, and selective retention of usually only 1–2 core artifacts instead of building an exhaustive literature collection.
+description: Research the current technical landscape for an engineering-prestudy project with an engineering-prestudy bias: find enough authoritative evidence and representative predecessor implementations to understand what exists, what has been achieved, what is worth borrowing, what predecessors got wrong, and what remains blocking; use iterative search, seed selection, limited snowballing, source/evidence/search logging, pitfall discovery, and selective retention of usually only 1–2 core artifacts instead of building an exhaustive literature collection.
 ---
 
 # Research Landscape
@@ -18,14 +18,15 @@ The phase is successful when the user can answer:
 - what this thing is and how the relevant process/architecture works;
 - what representative approaches currently exist;
 - how predecessors actually implemented it;
-- what predecessors learned the hard way and what a newcomer is likely to miss;
+- what predecessors discovered can go wrong;
 - what is worth borrowing for the current project;
-- what important trade-offs, hazards, or risks remain;
+- what important trade-offs or risks remain;
 - whether enough is known to move into design/planning.
 
-Do not keep searching simply because more papers, products, repositories, or webpages exist.
+Read:
 
-Read `references/search-and-retention-policy.md` for the detailed v1 search funnel, pitfall discovery pass, retained-download budget, and stop conditions.
+- `references/search-and-retention-policy.md`
+- `references/source-quality-policy.md`
 
 ## Inputs
 
@@ -33,12 +34,31 @@ Read:
 
 - `project.yaml` and current goal;
 - `research_questions.yaml`;
-- existing `sources.csv` and `evidence.jsonl`;
-- `pitfalls.yaml`;
+- `sources.csv`, `search_log.csv`, and `evidence.jsonl`;
+- `open_questions.yaml` and `pitfalls.yaml`;
 - user-provided files/links/code before searching for duplicates;
 - relevant unified user context when it affects source selection or explanation depth.
 
 Existing user material gets priority: first determine what it already answers before adding new sources.
+
+## Search logging
+
+Every meaningful search pass must be logged in `search_log.csv`.
+
+Record:
+
+- `SearchID`
+- `QuestionID`
+- timestamp
+- phase (`orientation|seed|snowball|contrarian|pitfall`)
+- query / search expression
+- scope or source class
+- short result summary
+- whether a new route appeared
+- whether the pass produced materially new information
+- next action
+
+Do not create a row for every trivial browser click. Log a coherent search pass.
 
 ## Default research funnel
 
@@ -64,7 +84,7 @@ Default guidance:
 - record useful candidates and why they matter;
 - prefer source diversity over many near-duplicates.
 
-These are guidance values, not quotas. Stop the orientation pass early when the important routes are already visible.
+These are guidance values, not quotas.
 
 ### 2. Select strong seed sources
 
@@ -83,20 +103,18 @@ For each seed, extract:
 - architecture / method;
 - implementation choices;
 - important constraints and limitations;
-- known mistakes, warnings, errata, and boundary conditions;
 - what is reusable;
 - what is not directly transferable;
 - evidence locators for important claims.
 
 ### 3. Limited snowballing
 
-When a strong seed source exists, expand through its:
+Expand strong seeds through:
 
 - backward/forward citations;
 - referenced standards or app notes;
 - related repositories;
-- issues/discussions that contain concrete engineering evidence;
-- errata / known-issues / troubleshooting material;
+- issues/discussions with concrete engineering evidence;
 - related implementations.
 
 Default: **one expansion round**.
@@ -104,70 +122,9 @@ Default: **one expansion round**.
 Continue beyond one round only if:
 
 - a blocking question remains unresolved; or
-- a materially different route appears that could change the engineering decision; or
-- a potentially high-impact pitfall remains insufficiently understood.
+- a materially different route appears that could change the engineering decision.
 
-Do not snowball merely to increase source count.
-
-### 4. Mandatory pitfall / hazard pass
-
-Before considering the landscape sufficient, explicitly ask:
-
-> **If a competent newcomer copied the obvious approach, what would they most likely miss, break, mis-measure, violate, or have to redesign later?**
-
-This pass is separate from the contrarian check. The contrarian check challenges the preferred conclusion; the pitfall pass looks for hidden engineering constraints and failure modes even when the preferred route is correct.
-
-Select the relevant lenses for the project rather than using every category mechanically.
-
-Typical hardware/electrical lenses include:
-
-- absolute maximum voltage/current/power and transient conditions;
-- clearance, creepage, insulation coordination, isolation ratings and pollution/environment assumptions;
-- grounding, floating nodes, common-mode range, shield/chassis relationships and ground loops;
-- measurement loading, probe/reference mistakes and CT/transformer-specific unsafe states;
-- startup, shutdown, hot-plug, inrush, surge and fault behavior;
-- protection, fusing, reverse polarity, overvoltage/overcurrent and fail-safe behavior;
-- connector/contact/trace/via current capability and heating;
-- thermal, derating and component lifetime;
-- EMC, signal integrity, filtering and bandwidth side effects;
-- manufacturing, assembly, test-point access and bring-up hazards;
-- applicable standards, certification or safety constraints.
-
-Typical FPGA/software/algorithm lenses include:
-
-- clock/reset/CDC and boundary conditions;
-- protocol corner cases and interoperability;
-- resource/latency/memory constraints;
-- numerical precision, overflow and fixed-point behavior;
-- data leakage, distribution shift or train/deploy mismatch;
-- dependency/version/toolchain incompatibility;
-- error handling, recovery and observability;
-- incomplete verification and misleading happy-path tests.
-
-Search specifically for evidence in:
-
-- official warnings, safety sections, errata and application notes;
-- standards and design guides;
-- original repository issues, discussions and changelogs;
-- troubleshooting guides and failure-analysis reports;
-- credible engineering postmortems/case studies;
-- community reports as discovery leads when stronger evidence is unavailable.
-
-For high-impact safety or feasibility constraints, community anecdotes alone are not enough when primary confirmation is reasonably available.
-
-Record material pitfalls in `pitfalls.yaml`. A pitfall should state:
-
-- what can go wrong;
-- why it happens;
-- consequence;
-- when/where it applies;
-- prevention/mitigation;
-- evidence or whether it is still an engineering inference;
-- whether it becomes a design constraint, verification item, blocker, or watch item.
-
-Do not turn the file into a generic checklist. Keep only issues plausibly relevant to the current architecture/project.
-
-### 5. Contrarian check
+### 4. Contrarian check
 
 Before stopping, actively look for one credible challenge to the emerging conclusion when relevant:
 
@@ -177,18 +134,63 @@ Before stopping, actively look for one credible challenge to the emerging conclu
 - newer revision;
 - contradictory evidence.
 
-The purpose is to avoid premature convergence, not to restart the whole research effort.
+The purpose is to avoid premature convergence, not restart the whole research effort.
 
-## Source tiers
+### 5. Mandatory pitfall / hazard pass
 
-Default source tiers:
+This is separate from the contrarian check.
 
-- `L1`: standards, official manuals/datasheets, original project/repository, official product documentation, original paper.
-- `L2`: reputable secondary technical analysis, review papers, textbooks, authoritative tutorials.
-- `L3`: community implementation, engineering blog, forum, issue/discussion with useful practical evidence.
-- `L4`: weakly sourced aggregation or discovery-only material; do not use as final support when a stronger source exists.
+Actively search for **unknown unknowns**: things a newcomer may not know to ask about but that can cause rework, bad measurements, latent failures, unsafe behavior, or invalid conclusions.
 
-Source tier and usefulness are different. An L1 source can still be irrelevant to the active question.
+Applicable engineering categories include:
+
+- electrical absolute maximums, transients, surge, derating;
+- creepage / clearance / insulation;
+- grounding, floating domains, common-mode, shielding;
+- measurement loading or measurement changing the original circuit;
+- abnormal/open/short/fault states;
+- connector, trace, via, current, thermal constraints;
+- EMC/EMI/filtering/bandwidth interactions;
+- startup/shutdown/bring-up order;
+- clock/reset/CDC and protocol corner cases;
+- hidden preprocessing/data leakage/evaluation mismatch in algorithms;
+- dependencies, toolchain versions, undocumented assumptions;
+- manufacturing/test/calibration/serviceability;
+- standards, regulatory, safety, or certification constraints.
+
+Search sources particularly useful for pitfalls:
+
+- standards / safety/application guides;
+- datasheet absolute-maximum and application sections;
+- errata;
+- GitHub issues/discussions;
+- engineering postmortems;
+- implementation notes;
+- verification/test documentation;
+- forum reports only when they contain concrete reproducible evidence.
+
+Record important findings in `pitfalls.yaml`, not only prose.
+
+## Source quality: authority != independence
+
+Track both dimensions.
+
+`Authority` answers:
+
+> How qualified/direct is this source for this factual claim?
+
+`Independence` answers:
+
+> How independent is this source from the product/method being evaluated?
+
+Examples:
+
+- vendor datasheet for pinout/rating: `Authority=HIGH`, `Independence=LOW`;
+- original paper for its own method: `Authority=HIGH`, `Independence=LOW` for superiority claims;
+- independent replication: often `Authority=HIGH|MEDIUM`, `Independence=HIGH`;
+- forum anecdote: usually lower authority, but may reveal a failure mode worth verifying.
+
+Do not use source tier as a substitute for these two dimensions.
 
 ## Download and retention policy
 
@@ -196,31 +198,24 @@ Source tier and usefulness are different. An L1 source can still be irrelevant t
 
 A normal pre-study may inspect and cite many sources, but should normally **download/retain only 1–2 artifacts** for later reading or reuse.
 
-Preferred pair when available:
+Preferred pair:
 
-1. **Reference source** — strongest material for principle/specification/authoritative understanding and important constraints.
-2. **Implementation source** — strongest predecessor example showing how the work was actually done, preferably including known issues or practical lessons.
+1. `REFERENCE` — strongest principle/specification/authoritative understanding source.
+2. `IMPLEMENTATION` — strongest predecessor example showing how the work was actually done.
 
-Examples:
+A third retained item requires an explicit exception reason and project policy override.
 
-- official standard/manual + open-source repository;
-- datasheet/application note + implementation project;
-- strong review/foundational paper + source code;
-- official architecture guide + detailed engineering paper.
+A source marked `RETAINED` must have:
 
-One retained item is enough when one artifact already covers both roles or only one source is genuinely worth future reading.
-
-A third retained artifact requires an explicit reason, such as:
-
-- mandatory standard + implementation + separate verification/test/safety reference;
-- two fundamentally different routes both remain viable;
-- the extra artifact resolves a blocking question or high-impact pitfall.
-
-Do not download a large collection merely because it appeared in search.
+- a `LocalPath`;
+- a `RetentionRole`;
+- `notes/<SourceID>.md`;
+- a real locally retained artifact;
+- an explanation of why it beat other candidates.
 
 Stable official webpages may remain URL-only when downloading adds little future value.
 
-### Retained-source notes
+## Retained-source notes
 
 Every retained artifact must get `notes/<SourceID>.md` containing:
 
@@ -229,23 +224,22 @@ Every retained artifact must get `notes/<SourceID>.md` containing:
 - key sections/files/pages;
 - what can be borrowed;
 - what cannot be copied directly or does not fit the project;
-- warnings / pitfalls / boundary conditions worth remembering;
 - which research questions it answers;
-- related evidence and pitfall IDs.
+- relevant pitfall/evidence IDs.
 
-For repositories, identify specific directories/files worth reading rather than saying only "look at this repo".
+For repositories, identify specific directories/files worth reading.
 
 ## Evidence model
 
 Write one record per line in `evidence.jsonl`.
 
-FACT example:
+FACT:
 
 ```json
 {"id":"F001","type":"FACT","statement":"...","source_id":"S001","locator":"page 6 / section X","confidence":"HIGH"}
 ```
 
-INFERENCE example:
+INFERENCE:
 
 ```json
 {"id":"I001","type":"INFERENCE","statement":"...","basis":["F001","F009"],"confidence":"MEDIUM"}
@@ -254,6 +248,26 @@ INFERENCE example:
 Every FACT must have a traceable locator when the source format supports one.
 
 Do not convert an inference into a FACT merely because several secondary sources repeat it.
+
+## Pitfall model
+
+Important pitfall records should contain:
+
+- `id`
+- `title`
+- `category`
+- `why_it_happens`
+- `consequence`
+- `impact: LOW|MEDIUM|HIGH|CRITICAL`
+- `action: WATCH|DESIGN_CONSTRAINT|VERIFY|BLOCKER`
+- `mitigation`
+- optional `verification`
+- `evidence`
+- `status: OPEN|MITIGATED|ACCEPTED|RESOLVED`
+
+`HIGH` and `CRITICAL` items need evidence and mitigation.
+
+A `CRITICAL` item cannot be left as `WATCH`.
 
 ## Contradictions
 
@@ -266,33 +280,35 @@ If credible sources conflict:
 
 ## Stop conditions
 
-A research question may move to `SATURATED` when the applicable conditions are met:
+A research question may move to `SATURATED` only when all applicable stop-condition flags are explicitly true:
 
-1. **Mechanism understood** — enough is known to explain the relevant process/architecture and continue design discussion.
-2. **Landscape known** — the main representative routes are identified; obscure variants are unnecessary.
-3. **Predecessor known** — at least one credible example shows how predecessors actually did it, when such an example exists.
-4. **Pitfalls surfaced** — relevant high-impact pitfalls/hidden constraints have been actively searched for and either handled or recorded.
-5. **Evidence adequate** — important factual claims have sufficiently strong support.
-6. **Trade-offs visible** — the major reasons to choose between viable routes are known.
-7. **Blocking unknowns handled** — blocking questions are resolved or explicitly routed to experiment/user decision/future investigation.
-8. **Low marginal value** — the most recent search/snowball/pitfall pass did not reveal a new route, materially alter the likely recommendation, surface a new high-impact risk, or resolve a blocking issue.
+- `mechanism_understood`
+- `landscape_known`
+- `predecessor_known_or_not_applicable`
+- `evidence_adequate`
+- `tradeoffs_visible`
+- `blocking_unknowns_handled`
+- `low_marginal_value`
 
-Do **not** require every open question or pitfall to be closed. Non-blocking unknowns and watch items remain recorded.
+`low_marginal_value` should be supported by the search log: the latest relevant pass should not reveal a new route, materially alter the recommendation, or resolve a blocking issue.
 
-Continue researching despite the default stop rule when:
+Do **not** require every open question to be closed. Non-blocking unknowns remain recorded.
 
-- architecture/safety/feasibility is blocked by an unanswered question;
-- a potentially critical pitfall has not been bounded;
+Continue researching when:
+
+- safety/feasibility/architecture is blocked;
 - primary sources materially disagree;
-- the preferred route depends on an unverified assumption;
-- a credible alternative could materially change cost, performance, safety, feasibility, or schedule;
-- the user explicitly requests deeper literature coverage.
+- a preferred route depends on an unverified assumption;
+- a credible alternative could materially change cost/performance/safety/feasibility/schedule;
+- the pitfall pass exposes a critical unknown;
+- the user explicitly requests deeper coverage.
 
 ## Output
 
 Update:
 
 - `sources.csv`;
+- `search_log.csv`;
 - `evidence.jsonl`;
 - `research_questions.yaml`;
 - `open_questions.yaml`;
@@ -300,16 +316,16 @@ Update:
 - project library and selected source notes;
 - `reports/research_landscape.md`.
 
-The report should be selective and action-oriented. Prefer:
+The report should be selective and action-oriented:
 
-1. **当前已经做到什么** — concise landscape summary.
-2. **1–3 条代表性路线** — not a long catalogue.
-3. **前辈怎么做** — concrete implementation patterns/examples.
-4. **前人踩过的坑 / 新手最容易漏的点** — prioritized by impact and relevance.
-5. **哪些最值得借鉴** — and why.
-6. **最终保留的 1–2 份资料** — with a reading guide.
-7. **不能直接照搬的地方**.
-8. **仍未解决的阻塞问题和高影响风险**.
-9. **是否已足够进入 design/planning**.
+1. 当前已经做到什么
+2. 1–3 条代表性路线
+3. 前辈怎么做
+4. 哪些最值得借鉴
+5. 前人踩过的坑与注意事项
+6. 最终保留的 1–2 份资料 + 阅读指南
+7. 不能直接照搬的地方
+8. 仍未解决的阻塞问题
+9. 是否已足够进入 design/planning
 
-Avoid long lists of similar papers/products/projects unless comparison itself is the research goal.
+Avoid long catalogues unless comparison itself is the research goal.

@@ -1,14 +1,17 @@
 schema_version: 1
+
 required_top_level:
   - schema_version
   - source_plan_revision
   - status
   - approval_required
   - work_packages
+
 status:
   - DRAFT
   - APPROVED
   - HANDED_OFF
+
 work_package_required:
   - id
   - stage
@@ -16,7 +19,22 @@ work_package_required:
   - expected_outputs
   - acceptance
   - dependencies
+
+work_package_optional:
+  - open_question_ids
+  - decision_ids
+  - pitfall_ids
+
+forbidden_research_owned_fields:
+  - estimated_duration
+  - date
+  - priority
+  - schedule
+  - time_blocks
+
 rules:
-  - Research owns engineering work packages, outputs, acceptance, and dependencies.
+  - Research owns engineering work packages, outputs, acceptance, dependencies, and traceability IDs.
   - Dida owns task breakdown, estimation, scheduling, and progress.
+  - DRAFT always requires user approval before mutation of Dida.
+  - Bridge export requires APPROVED unless explicitly running preview mode.
   - Existing Dida tasks must not be materially changed because of research revisions without user approval.

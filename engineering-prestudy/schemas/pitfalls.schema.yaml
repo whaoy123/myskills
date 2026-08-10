@@ -1,42 +1,43 @@
 schema_version: 1
 file: pitfalls.yaml
 root_key: items
-item:
-  required:
-    - id
-    - failure_mode
-    - impact
-    - action
-    - status
-  fields:
-    id: "PIT###"
-    title: string
-    category: string
-    failure_mode: string
-    why_it_happens: string
-    consequence: string
-    applies_when: string
-    mitigation: string
-    evidence: "list of FACT/INFERENCE IDs"
-    impact:
-      - LOW
-      - MEDIUM
-      - HIGH
-      - CRITICAL
-    action:
-      - WATCH
-      - DESIGN_CONSTRAINT
-      - VERIFY
-      - BLOCKER
-    status:
-      - OPEN
-      - MITIGATED
-      - ACCEPTED
-      - NOT_APPLICABLE
-    owner: string
-    notes: string
+
+required_fields:
+  - id
+  - title
+  - category
+  - impact
+  - action
+  - status
+
+impact:
+  - LOW
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+
+action:
+  - WATCH
+  - DESIGN_CONSTRAINT
+  - VERIFY
+  - BLOCKER
+
+status:
+  - OPEN
+  - MITIGATED
+  - ACCEPTED
+  - RESOLVED
+
+recommended_fields:
+  - why_it_happens
+  - consequence
+  - mitigation
+  - verification
+  - evidence
+  - open_question_ids
+
 rules:
-  - Keep only pitfalls plausibly relevant to the current project; do not copy a generic checklist into the register.
-  - A pitfall supported only by engineering reasoning must reference an INFERENCE rather than being presented as a sourced FACT.
-  - BLOCKER items must be mitigated or resolved before dependent planning work is approved.
-  - CRITICAL or safety-related items should prefer primary/authoritative evidence where reasonably available.
+  - HIGH and CRITICAL require evidence and mitigation.
+  - CRITICAL cannot use WATCH.
+  - BLOCKER must prevent approval of dependent work until mitigated/resolved or explicitly reclassified.
+  - Keep one authoritative pitfall record and trace downstream controls back to its id.

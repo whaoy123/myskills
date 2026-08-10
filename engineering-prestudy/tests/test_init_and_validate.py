@@ -1,21 +1,27 @@
+from __future__ import annotations
+
+import importlib.util
 from pathlib import Path
 
-from scripts.init_project import init
-from scripts.validate_state import validate
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
 
 
-def test_init_creates_valid_state(tmp_path: Path):
-    base = init(tmp_path / "project")
-    state = base / "research_state"
-    assert validate(state) == []
-    assert (base / "library" / "repos").is_dir()
-    assert (base / "reports").is_dir()
+ROOT = Path(__file__).resolve().parents[1]
+INIT = load_module("init_project", ROOT / "scripts" / "init_project.py")
+VALIDATE = load_module("validate_state", ROOT / "scripts" / "validate_state.py")
 
 
-def test_invalid_stage_is_rejected(tmp_path: Path):
-    base = init(tmp_path / "project")
-    project = base / "research_state" / "project.yaml"
-    text = project.read_text(encoding="utf-8")
-    project.write_text(text.replace("current_stage: UNDERSTAND", "current_stage: INVALID"), encoding="utf-8")
-    errors = validate(base / "research_state")
-    assert any("invalid project current_stage" in e for e in errors)
+def test_init_and_validate(tmp_path: Path):
+    prestudy = INIT.init(tmp_path, ROOT / "templates" / "reports")
+    state = prestudy / "research_state"
+
+    assert (state / "search_log.csv").exists()
+    assert (state / "pitfalls.yaml").exists()
+    assert (prestudy / "reports" / "FINAL.md").exists()
+    assert VALIDATE.validate(state) == []

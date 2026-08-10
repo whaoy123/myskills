@@ -5,12 +5,15 @@ import argparse
 import re
 from pathlib import Path
 
-FORBIDDEN_PARTS = {".prestudy", "user-context", "research_state", "library", "reports"}
+RUNTIME_PARTS = {".prestudy", "research_state"}
+RUNTIME_TOP_LEVEL = {"library", "reports", "user-context"}
 TEXT_EXTS = {".md", ".yaml", ".yml", ".json", ".jsonl", ".csv", ".py", ".txt"}
+
 SUSPICIOUS = [
-    re.compile(r"[A-Za-z]:\\\\Users\\\\[^\\\s]+", re.I),
+    re.compile(r"[A-Za-z]:\\Users\\[^\\\s]+", re.I),
     re.compile(r"/home/[^/\s]+/"),
-    re.compile(r"(?i)(api[_-]?key|token|secret)\s*[:=]\s*['\"]?[^\s'\"]+"),
+    re.compile(r"(?i)(api[_-]?key|access[_-]?token|secret)\s*[:=]\s*['\"]?[^\s'\"]+"),
+    re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{12,}"),
 ]
 
 
@@ -18,7 +21,10 @@ def audit(root: Path) -> list[str]:
     errors: list[str] = []
     for p in root.rglob("*"):
         rel = p.relative_to(root)
-        if any(part in FORBIDDEN_PARTS for part in rel.parts):
+        if any(part in RUNTIME_PARTS for part in rel.parts):
+            errors.append(f"forbidden runtime path: {rel}")
+            continue
+        if rel.parts and rel.parts[0] in RUNTIME_TOP_LEVEL:
             errors.append(f"forbidden runtime path: {rel}")
             continue
         if p.is_file() and p.suffix.lower() in TEXT_EXTS:
