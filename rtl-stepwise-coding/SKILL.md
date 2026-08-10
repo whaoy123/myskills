@@ -119,7 +119,7 @@ C. 其他方式
 - 状态机必须有默认恢复路径；
 - 未确认的行为不得静默猜测。
 
-默认优先使用 SystemVerilog；若用户明确要求 Verilog-2001，则切换为 Verilog-2001。
+新 RTL 默认使用 SystemVerilog；已有 `.v`/`.vh` 文件保持 Verilog-2001，除非用户要求迁移，或项目/工具链已支持 SystemVerilog 并获批准。
 
 ### 2.4 RTL 编码标准委托
 
@@ -313,10 +313,11 @@ C. 其他方式
 
 ```systemverilog
 always_ff @(posedge clk_i) begin
-    if (!rst_n_i)
+    if (!rst_n_i) begin
         state_reg <= S_IDLE;
-    else
+    end else begin
         state_reg <= state_next;
+    end
 end
 
 always_comb begin

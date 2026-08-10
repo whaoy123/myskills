@@ -25,12 +25,28 @@ Before changes, inspect nearby RTL and identify the synthesis/simulation toolcha
 
 - Use one clock domain per `always_ff`; use nonblocking assignments for sequential state and blocking assignments in `always_comb`.
 - Do not gate fabric clocks. Follow the project reset policy; treat asynchronous reset release and CDC/RDC as explicit architecture concerns.
+- Declare every signal, net, type, and parameter before use; do not rely on implicit net declarations. In SystemVerilog, default to four-state `logic`; use `wire` only when an actual net is required (for example, `inout`, a supported tri-state port, or an intentional continuous net), and state the reason. In Verilog-2001, use the explicit `wire`/`reg` declarations required by that language.
+- Use ANSI/full Verilog-2001-compatible port declarations with explicit direction and type. Use semantic port and parameter names, and retain the repository's naming convention.
+- Use named port connections and named parameter overrides for every instance. Do not use positional ports or parameters, `.*`, or `defparam`. List every port explicitly: leave unused outputs as `.port()` and tie fixed or unused inputs to explicit, correctly sized constants.
+- Do not use synthesizable hierarchical references, recursive instantiation, or cyclic package dependencies.
 - Provide defaults or complete assignments for combinational outputs. Treat latches, multiple procedural drivers, and read-before-write ambiguity as blockers.
 - Use explicit literal widths, casts, signedness, counter bounds, and guarded `$clog2` calculations. Declare enum base widths when encoding matters.
-- Do not use `casex`. Use wildcard cases, `unique`, `priority`, assertions, interfaces, and advanced SV features only when their semantic promise and tool support are established.
+- In boolean contexts, compare multi-bit values explicitly with a zero value such as `!= '0` or `== '0`; do not rely on implicit reduction. Avoid redundant full-width slices such as `bus[WIDTH-1:0]` when the whole vector is intended.
+- Do not assign `X` values as synthesis don't-cares. Do not use `casex`; use wildcard cases only when required by the protocol and supported by the target flow. Do not use internal `Z` states for on-chip muxing; reserve tri-state behavior for an explicitly supported external I/O boundary.
+- Every `case` statement must include `default:`. Never use `full_case` or `parallel_case`. Use `unique` or `priority` only when the exclusivity or priority promise is true, documented by the design, and supported by the target flow; do not add either keyword unconditionally.
+- Within a clocked process, do not assign the same register bit through multiple independent nonblocking assignments whose source order would silently define priority. Express priority with `if`/`else if` or an explicit `case`.
+- In synthesizable RTL, use `function automatic` only with explicit four-state input and return types. Keep functions side-effect-free: no `output`/`inout`/`ref` arguments, no mutable non-local signal reads, and no hidden state. Assign every local and the returned result on all paths; do not use tasks for synthesizable behavior.
 - Keep design RTL free from verification-only or timing constructs such as classes, randomization, dynamic arrays, queues, delays, events, file I/O, DPI, and `force`/`release`.
 - Use bounded loops and named generate blocks. Follow proven vendor/project templates for RAM, ROM, DSP, and initialization behavior.
 - Use reviewed synchronizers, async FIFOs, or handshakes for crossings; never conceal a crossing in ordinary combinational logic.
+
+## Readable control syntax
+
+- Omit `begin`/`end` only when the control arm or case item and its complete semicolon-terminated statement are on the same physical line. Once the statement wraps to another line, use `begin`/`end`, even for one statement.
+- Put `begin` on the same line as its preceding control keyword or case item and end that line. Put `end` on its own line. Keep `end else begin` on one line; a labeled `end : label` may put a following `else` on the next line.
+- Apply the same block rule to each case item. Put no space before a case-item colon, at least one space after it, and always write `default:`.
+- Put a space between control keywords and `(` (`if (cond)`, `case (state)`), but no space between a function, task, or macro name and `(`.
+- Put spaces on both sides of binary operators and after commas. Add parentheses when precedence would require a reader to reason about it.
 
 ## Human-readable RTL structure
 
@@ -47,7 +63,7 @@ Before changes, inspect nearby RTL and identify the synthesis/simulation toolcha
 - For timing-sensitive protocol logic, explain comments as a readable sequence of elapsed beats, the resulting sample-window location, and the purpose (for example, "进入 SYNC 一拍 + 保持 14 拍 + 进入 DATA 一拍"). Avoid relying solely on abstract labels such as `P1/P16` when a reader cannot reconstruct the data position from them.
 - Treat `valid` plus its data, type, and error fields as one held result bundle: once produced, keep every field stable until a successful ready/valid handshake or until the documented contract allows a newly completed result to overwrite it. If handshake and new completion happen on the same edge, make the new result the explicit higher-priority update so it is not lost.
 - Keep error semantics non-overlapping: each protocol stage sets its own named error register at the point the condition is detected (for example Manchester, parity, or word-length). The final result stage may OR those stored flags for an aggregate error output, but do not introduce a composite error qualification that repeats or obscures earlier checks.
-- Prefer named port connections. Keep clocks, resets, and CDC-sensitive controls visible.
+- Keep clocks, resets, and CDC-sensitive controls visible.
 
 ## Minimal RTL implementation
 
