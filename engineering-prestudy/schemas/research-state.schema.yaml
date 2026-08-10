@@ -7,6 +7,7 @@ required_files:
   - sources.csv
   - evidence.jsonl
   - open_questions.yaml
+  - pitfalls.yaml
   - decisions.yaml
   - project_plan.yaml
   - dida_handoff.yaml
@@ -31,6 +32,21 @@ open_question_impact:
   - MEDIUM
   - HIGH
   - BLOCKING
+pitfall_impact:
+  - LOW
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+pitfall_action:
+  - WATCH
+  - DESIGN_CONSTRAINT
+  - VERIFY
+  - BLOCKER
+pitfall_status:
+  - OPEN
+  - MITIGATED
+  - ACCEPTED
+  - NOT_APPLICABLE
 decision_status:
   - PROPOSED
   - CONFIRMED
@@ -42,6 +58,9 @@ evidence_type:
 rules:
   - FACT requires source_id and should include a locator when available.
   - INFERENCE requires one or more basis evidence IDs.
+  - Every relevant pitfall must state a concrete failure_mode and mitigation unless NOT_APPLICABLE.
+  - High-impact safety/feasibility pitfalls should prefer primary evidence when reasonably available.
+  - Pitfalls may become design constraints, verification items, blockers, or watch items.
   - CONFIRMED decisions may become hard planning assumptions.
   - Initial goal must never be overwritten by a revised current goal.
   - Reports are derived outputs and are not authoritative state.
