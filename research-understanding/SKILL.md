@@ -1,0 +1,68 @@
+---
+name: research-understanding
+description: Help the user understand a technical topic by bridging from their existing knowledge, maintaining a project-specific knowledge model, identifying prerequisite gaps and misconceptions, and iterating between explanation, questions, and targeted research. Use before or during engineering research when the user does not yet have a stable mental model of what the system is, how it works, or what they need to do.
+---
+
+# Research Understanding
+
+Run the understanding loop for an `engineering-prestudy` project.
+
+## Inputs
+
+Read:
+
+- unified user context from `user-context-profile`;
+- `research_state/project.yaml`;
+- `research_state/knowledge_model.yaml`;
+- `research_state/research_questions.yaml`;
+- `research_state/open_questions.yaml`;
+- relevant existing evidence and user-provided materials.
+
+## Core objective
+
+Do not merely summarize a textbook. Build a mental model that connects the new topic to concepts the user already understands.
+
+## Understanding loop
+
+1. Identify what the user already knows that can anchor the explanation.
+2. Identify the smallest conceptual gap blocking the current goal.
+3. Explain using existing knowledge, physical intuition, causal flow, concrete system behavior, and only then formulas when useful.
+4. Let the user challenge the model or supply their own interpretation.
+5. Record misunderstandings or gaps as project state, not global deficiencies.
+6. If a factual question requires external evidence, create/activate a research question and hand it to `research-landscape`.
+7. Update the project knowledge model when understanding changes.
+8. Continue until the user can explain the relevant process well enough for the next engineering step.
+
+## Knowledge categories
+
+`knowledge_model.yaml` separates:
+
+- `inherited`: relevant global knowledge brought in at project start;
+- `known`: project-specific concepts currently understood;
+- `current_beliefs`: tentative mental models or assumptions;
+- `unclear`: unresolved conceptual gaps;
+- `confirmed_updates`: newly established understanding;
+- `promotion_candidates`: knowledge potentially reusable across projects.
+
+## Promotion boundary
+
+Do not directly edit the global user profile. Add a promotion candidate and let `user-context-profile` decide whether it becomes durable global knowledge.
+
+## Output
+
+Maintain project state and generate/update:
+
+```text
+reports/current_understanding.md
+```
+
+The human-readable report should contain:
+
+1. what the system/topic is;
+2. how it works step by step;
+3. bridges to the user's existing knowledge;
+4. what the user currently understands;
+5. remaining conceptual gaps;
+6. the next most useful concept/question.
+
+Keep the report explanatory, not a dumping ground for source lists.
