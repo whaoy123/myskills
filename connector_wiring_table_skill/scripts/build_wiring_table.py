@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -11,15 +12,9 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 AD_COLUMNS = ["BoardConnector", "BoardPin", "NetName"]
-MAP_COLUMNS = [
-    "SheetName", "CableEnd", "CablePin", "BoardConnector", "BoardPin",
-    "CableConnectorModel", "Gender", "MatesTo"
-]
+EXT_COLUMNS = ["SheetName", "CableEnd", "CablePin", "NetName", "TargetBoardConnector", "BoardPinHint", "CableConnectorModel", "Gender", "MatesTo"]
 SIGNAL_COLUMNS = ["NetName", "SignalDefinition", "WireType", "ElectricalAttribute", "Include"]
-OUT_HEADERS = [
-    "序号", "连接点1代号", "节点号1", "", "连接点2代号", "节点号2",
-    "线型", "信号定义", "电气属性/备注"
-]
+OUT_HEADERS = ["序号", "连接点1代号", "节点号1", "", "连接点2代号", "节点号2", "线型", "信号定义", "电气属性/备注"]
 
 class ValidationError(RuntimeError):
     pass
@@ -44,22 +39,23 @@ def read_csv(path: Path, required: List[str]) -> List[dict]:
 def truthy(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "是", "include"}
 
-def pin_key(ref: str, pin: str) -> Tuple[str, str]:
-    return (ref.strip(), pin.strip())
-
-def build_normalized(ad_rows: List[dict], map_rows: List[dict], signal_rows: List[dict]):
+def build_normalized(ad_rows: List[dict], ext_rows: List[dict], signal_rows: List[dict]):
     errors: List[str] = []
     warnings: List[str] = []
-    ad: Dict[Tuple[str, str], str] = {}
+    by_pin: Dict[Tuple[str, str], str] = {}
+    by_connector_net: Dict[Tuple[str, str], List[str]] = defaultdict(list)
     for r in ad_rows:
-        key = pin_key(r["BoardConnector"], r["BoardPin"])
-        net = r["NetName"]
-        if not all(key) or not net:
-            errors.append(f"ad_pin_net.csv:{r['_line']} 存在空 BoardConnector/BoardPin/NetName")
+        ref, pin, net = r["BoardConnector"], r["BoardPin"], r["NetName"]
+        if not all([ref, pin, net]):
+            errors.append(f"ad_pin_net.csv:{r['_line']} 存在空字段")
             continue
-        if key in ad and ad[key] != net:
-            errors.append(f"AD 引脚 {key[0]}.{key[1]} 同时属于网络 {ad[key]} 与 {net}")
-        ad[key] = net
+        pk = (ref, pin)
+        if pk in by_pin and by_pin[pk] != net:
+            errors.append(f"AD 引脚 {ref}.{pin} 同时属于 {by_pin[pk]} 与 {net}")
+        by_pin[pk] = net
+        key = (ref, net)
+        if pin not in by_connector_net[key]:
+            by_connector_net[key].append(pin)
     signals: Dict[str, dict] = {}
     for r in signal_rows:
         net = r["NetName"]
@@ -74,48 +70,48 @@ def build_normalized(ad_rows: List[dict], map_rows: List[dict], signal_rows: Lis
     normalized = []
     sheet_order: List[str] = []
     connector_meta: Dict[str, dict] = {}
-    for r in map_rows:
+    for r in ext_rows:
         sheet, cable_end, cable_pin = r["SheetName"], r["CableEnd"], r["CablePin"]
-        board_ref, board_pin = r["BoardConnector"], r["BoardPin"]
-        if not all([sheet, cable_end, cable_pin, board_ref, board_pin]):
-            errors.append(f"cable_map.csv:{r['_line']} 关键字段不能为空")
+        net, board_ref, hint = r["NetName"], r["TargetBoardConnector"], r["BoardPinHint"]
+        if not all([sheet, cable_end, cable_pin, net, board_ref]):
+            errors.append(f"external_pinout.csv:{r['_line']} 关键字段不能为空")
             continue
         if sheet not in sheet_order:
             sheet_order.append(sheet)
-        ck, bk = pin_key(cable_end, cable_pin), pin_key(board_ref, board_pin)
+        ck = (cable_end, cable_pin)
         if ck in cable_seen:
-            errors.append(f"线缆端引脚重复映射: {cable_end}.{cable_pin}")
+            errors.append(f"外部连接器 pin 重复: {cable_end}.{cable_pin}")
         cable_seen.add(ck)
-        if bk in board_seen:
-            errors.append(f"板端引脚被重复接出: {board_ref}.{board_pin}")
-        board_seen.add(bk)
-        net = ad.get(bk)
-        if net is None:
-            errors.append(f"cable_map.csv:{r['_line']} 的板端 {board_ref}.{board_pin} 在 ad_pin_net.csv 中不存在")
-            continue
         sig = signals.get(net)
         if sig is None:
             errors.append(f"网络 {net} 未在 signal_catalog.csv 中定义")
             continue
         if not truthy(sig["Include"]):
             continue
+        candidates = by_connector_net.get((board_ref, net), [])
+        if hint:
+            if hint not in candidates:
+                errors.append(f"external_pinout.csv:{r['_line']} BoardPinHint={hint} 与 AD 中 {board_ref}/{net} 不一致，候选={candidates}")
+                continue
+            board_pin = hint
+        elif len(candidates) == 1:
+            board_pin = candidates[0]
+        elif len(candidates) == 0:
+            errors.append(f"external_pinout.csv:{r['_line']} 无法在 AD 中找到 {board_ref} 上网络 {net}")
+            continue
+        else:
+            errors.append(f"external_pinout.csv:{r['_line']} {board_ref}/{net} 对应多个 pin {candidates}，必须填写 BoardPinHint")
+            continue
+        bk = (board_ref, board_pin)
+        if bk in board_seen:
+            errors.append(f"板端引脚被重复接出: {board_ref}.{board_pin}")
+        board_seen.add(bk)
         model, gender, mates_to = r["CableConnectorModel"], r["Gender"], r["MatesTo"]
-        meta = connector_meta.setdefault(cable_end, {
-            "CableEnd": cable_end, "CableConnectorModel": model, "Gender": gender,
-            "BoardConnector": board_ref, "MatesTo": mates_to,
-        })
+        meta = connector_meta.setdefault(cable_end, {"CableEnd": cable_end, "CableConnectorModel": model, "Gender": gender, "BoardConnector": board_ref, "MatesTo": mates_to})
         for k, v in [("CableConnectorModel", model), ("Gender", gender), ("BoardConnector", board_ref), ("MatesTo", mates_to)]:
             if meta[k] != v:
                 errors.append(f"{cable_end} 的连接器元数据不一致: {k}={meta[k]} / {v}")
-        normalized.append({
-            "SheetName": sheet, "CableEnd": cable_end, "CablePin": cable_pin,
-            "BoardConnector": board_ref, "BoardPin": board_pin, "NetName": net,
-            "WireType": sig["WireType"], "SignalDefinition": sig["SignalDefinition"] or net,
-            "ElectricalAttribute": sig["ElectricalAttribute"],
-        })
-    unused_ad = [f"{r}.{p}" for (r, p) in ad if (r, p) not in board_seen]
-    if unused_ad:
-        warnings.append(f"AD 表中有 {len(unused_ad)} 个引脚未用于线缆映射")
+        normalized.append({"SheetName": sheet, "CableEnd": cable_end, "CablePin": cable_pin, "BoardConnector": board_ref, "BoardPin": board_pin, "NetName": net, "WireType": sig["WireType"], "SignalDefinition": sig["SignalDefinition"] or net, "ElectricalAttribute": sig["ElectricalAttribute"]})
     if errors:
         raise ValidationError("\n".join(errors))
     return normalized, sheet_order, list(connector_meta.values()), warnings
@@ -157,8 +153,8 @@ def write_xlsx(rows: List[dict], sheet_order: List[str], connector_meta: List[di
             n += 1
             ws.append([n, r["CableEnd"], r["CablePin"], "", r["BoardConnector"], r["BoardPin"], r["WireType"], r["SignalDefinition"], r["ElectricalAttribute"]])
         ws.append([])
-        ws.append(["说明", "节点号按连接器标准引脚号填写，不因公母视图反向而手动镜像；焊接时以实物壳体/焊杯标号为准。"])
-        ws.append(["说明", "电气属性仅来自 signal_catalog.csv；脚本不自行猜测电气参数。"])
+        ws.append(["说明", "节点号按连接器标准引脚号填写，不因公母视图反向而手动镜像。"])
+        ws.append(["说明", "板端节点号由 AD pin/net 数据按 NetName 自动求得；存在歧义时必须使用 BoardPinHint。"])
         style_sheet(ws)
     ws = wb.create_sheet("连接器型号")
     ws.append(["线缆端编号", "连接器型号/规格", "公母/端接形式", "对接板端", "对接对象", "说明"])
@@ -188,7 +184,7 @@ def write_report(path: Path, rows: List[dict], warnings: List[str]):
     for r in rows:
         if r["SheetName"] not in sheets:
             sheets.append(r["SheetName"])
-    lines = ["# Wiring Table Validation Report", "", "## Result", "PASS", "", "## Summary", f"- Connections: {len(rows)}", f"- Wiring sheets: {len(sheets)}", "- Excel read-back match: PASS", f"- Warnings: {len(warnings)}", "", "## Warnings"]
+    lines = ["# Wiring Table Validation Report", "", "## Result", "PASS", "", "## Summary", f"- Connections: {len(rows)}", f"- Wiring sheets: {len(sheets)}", "- Board pins resolved from AD net data: PASS", "- Excel read-back match: PASS", f"- Warnings: {len(warnings)}", "", "## Warnings"]
     lines.extend([f"- {w}" for w in warnings] or ["- None"])
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -199,9 +195,9 @@ def main():
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     ad_rows = read_csv(args.input_dir / "ad_pin_net.csv", AD_COLUMNS)
-    map_rows = read_csv(args.input_dir / "cable_map.csv", MAP_COLUMNS)
+    ext_rows = read_csv(args.input_dir / "external_pinout.csv", EXT_COLUMNS)
     signal_rows = read_csv(args.input_dir / "signal_catalog.csv", SIGNAL_COLUMNS)
-    rows, sheet_order, connector_meta, warnings = build_normalized(ad_rows, map_rows, signal_rows)
+    rows, sheet_order, connector_meta, warnings = build_normalized(ad_rows, ext_rows, signal_rows)
     write_normalized_csv(rows, args.output_dir / "normalized_connections.csv")
     xlsx = args.output_dir / "wiring_table.xlsx"
     write_xlsx(rows, sheet_order, connector_meta, xlsx)

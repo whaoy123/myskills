@@ -16,7 +16,7 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 
 | Skill | Description |
 |-------|-------------|
-| [connector-wiring-table-generator](connector_wiring_table_skill/SKILL.md) | Fixed three-input workflow: Altium pin-to-net CSV + cable physical mapping CSV + signal catalog CSV. Python validates every pin mapping, generates the xlsx, reads it back, and requires a PASS report before delivery. |
+| [connector-wiring-table-generator](connector_wiring_table_skill/SKILL.md) | Fixed three-input workflow: Altium pin-to-net CSV + external connector pinout CSV + signal catalog CSV. Python resolves board pins from AD nets, generates the xlsx, reads it back, and requires a PASS report before delivery. |
 | [pcb-soldering-table-from-schematic](pcb_soldering_table_skill/SKILL.md) | Fixed BOM + component-rules workflow. Python calculates quantities, SMD/THT solder joints, fixed-pin counts and totals, generates the xlsx, and verifies it by read-back. |
 
 ### Document Production

@@ -1,122 +1,124 @@
 ---
 name: connector-wiring-table-generator
-description: 从固定格式的 Altium 引脚-网络表、线缆物理映射表和信号属性表，生成并脚本校验可直接用于做线/验线的标准接线表 Excel。优先使用结构化输入和确定性 Python 校验，不从截图人工抄 pin，不依赖 LLM 计算或逐行生成 Excel。
+description: 从固定格式的 Altium 引脚-网络表、外部连接器 pinout 和信号属性表自动求出板端 Pin，生成并脚本校验标准接线表 Excel。禁止人工抄写板端 Pin；板端 Pin 必须由 AD 网络数据按 NetName 匹配得到。
 ---
 
 # Connector Wiring Table Generator
 
-## 1. 目标
-
-把接线表流程固定成：
+## 1. 固定流程
 
 ```text
-固定输入 3 份 CSV
-    ↓
-Python 结构校验
-    ↓
-生成唯一 normalized_connections.csv
-    ↓
-Python 生成 wiring_table.xlsx
-    ↓
-Python 回读 Excel 与 normalized_connections.csv 逐行比较
-    ↓
-validation_report.md = PASS
-    ↓
-人工/代理做语义复核
+AD pin/net + 外部连接器 pinout + 信号属性
+             ↓
+       Python 自动匹配 NetName
+             ↓
+       自动求 BoardPin
+             ↓
+ normalized_connections.csv
+             ↓
+       wiring_table.xlsx
+             ↓
+      Excel 回读逐字段比较
+             ↓
+ validation_report.md = PASS
 ```
 
-核心原则：
+最重要的规则：
 
-1. **AD 导出的 pin-to-net 数据是板内连接真值源。**
-2. **线缆物理映射是线缆端到板端的真值源。**
-3. **信号属性表是线型、信号定义和电气属性的真值源。**
-4. LLM 只负责从原始资料整理这三份输入、解释异常和做语义复核。
-5. pin 映射、重复检查、Excel 生成、数量和回读一致性由脚本完成。
-6. 禁止直接根据截图逐行手写最终 Excel。
-7. 不因公母正视图/焊接面镜像而修改标准 pin number。
+> **外部 pin 来自设备/线缆 pinout；板端 pin 来自 Altium；两者通过 NetName 自动匹配。**
 
-## 2. 固定输入
+用户不需要先手工填写最终的 `CablePin -> BoardPin` 映射，否则等于先做了一遍接线表。
 
-每次任务统一使用一个 `input/` 目录，文件名和列名固定：
+## 2. 固定输入：只认 3 个 CSV
 
 ```text
 input/
 ├─ ad_pin_net.csv
-├─ cable_map.csv
+├─ external_pinout.csv
 └─ signal_catalog.csv
 ```
 
 ### 2.1 `ad_pin_net.csv`
 
-来源：优先由 Altium Designer 工程导出/整理得到的引脚—网络表。
-
-固定列：
+这是**板端连接真值源**，优先从 Altium Designer 导出/整理。
 
 ```csv
 BoardConnector,BoardPin,NetName
-U1,1,POR_A
-U1,2,POR_B
-U1,3,POR_C
+U1,7,POR_A
+U1,8,POR_B
+U1,9,POR_C
 ```
+
+固定列：
+
+- `BoardConnector`
+- `BoardPin`
+- `NetName`
 
 要求：
 
-- `BoardConnector + BoardPin` 在表内唯一；
-- 同一个板端 pin 不允许属于两个不同 Net；
-- `BoardPin` 使用连接器标准引脚号；
-- 不手动按公母视角镜像；
-- 只记录与线缆/外部接口有关的连接器 pin 即可，不要求导出整板所有器件。
+- `BoardConnector + BoardPin` 唯一；
+- 不允许同一个 pin 同时属于两个不同 Net；
+- pin 使用连接器标准编号，不按公母视图镜像；
+- 只需要外部接口相关连接器，不要求整板所有器件。
 
-如果用户能提供 AD 的连接/Netlist 数据，优先直接使用；如果只有原理图/PDF，可先由 AI 提取成该 CSV，但在最终生成前必须让脚本校验。
+如果用户直接给 AD 原始 Netlist/连接表，AI 的第一步是把它规范化为该 CSV。**优先要 AD 的线表/Netlist，而不是截图。**
 
-### 2.2 `cable_map.csv`
+### 2.2 `external_pinout.csv`
 
-这是**线缆物理关系真值源**。一行表示一个实际需要焊接/连接的 pin-to-pin 关系。
-
-固定列：
+这是**外部设备/线缆端 pin 真值源**，通常由设备官方 connector pin definition、旧接线表或用户明确资料整理。
 
 ```csv
-SheetName,CableEnd,CablePin,BoardConnector,BoardPin,CableConnectorModel,Gender,MatesTo
-AVRplus方向,L1,1,U1,1,UTG62448SN,母头,AVRplus
-AVRplus方向,L1,2,U1,2,UTG62448SN,母头,AVRplus
+SheetName,CableEnd,CablePin,NetName,TargetBoardConnector,BoardPinHint,CableConnectorModel,Gender,MatesTo
+AVRplus方向,L1,1,POR_A,U1,,UTG62448SN,母头,AVRplus
+AVRplus方向,L1,2,POR_B,U1,,UTG62448SN,母头,AVRplus
 ```
 
-字段含义：
+含义：
 
-- `SheetName`：该连接所属输出 Sheet，例如 `AVRplus方向`、`发电机方向`；
-- `CableEnd`：L1/L2/L3...；
-- `CablePin`：线缆端标准 pin number；
-- `BoardConnector`：板上 U/J 位号；
-- `BoardPin`：板端标准 pin number；
-- `CableConnectorModel`：线缆端连接器型号；
-- `Gender`：公头/母头/端接形式；
-- `MatesTo`：线缆另一侧实际对接对象。
+- `CableEnd` / `CablePin`：外部线缆端及其标准 pin；
+- `NetName`：该外部 pin 对应的信号网络；
+- `TargetBoardConnector`：这根线接板上的哪个连接器，例如 U1；
+- `BoardPinHint`：通常留空；
+- `CableConnectorModel` / `Gender` / `MatesTo`：连接器说明；
+- `SheetName`：输出放在哪个接线 Sheet。
 
-不要默认 `CablePin == BoardPin`。即使大多数直通连接相同，也必须在 CSV 中明确写出。
+**BoardPin 不由用户填写。**
+
+脚本会查询：
+
+```text
+(TargetBoardConnector, NetName) -> BoardPin
+```
+
+若 AD 中唯一匹配，则自动得到 BoardPin。
+
+如果同一连接器上同一个 Net 出现在多个 pin（并联 pin），脚本会拒绝猜测；此时才填写 `BoardPinHint` 指定其中一个，并再次由 AD 数据验证该 Hint 是否正确。
 
 ### 2.3 `signal_catalog.csv`
-
-这是显示名称、线型和电气属性真值源。
-
-固定列：
 
 ```csv
 NetName,SignalDefinition,WireType,ElectricalAttribute,Include
 POR_A,POR Phase A,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
-POR_B,POR Phase B,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
 ```
 
-要求：
+固定列：
 
-- `NetName` 唯一；
-- `Include=yes/no` 决定是否进入最终接线表；
-- `WireType` 只能来自用户旧表、明确说明或项目规则，不凭经验猜；
-- `ElectricalAttribute` 只来自官方资料/用户资料；没有依据则留空；
-- AI 不在生成 Excel 时再次重解释这些字段。
+- `NetName`
+- `SignalDefinition`
+- `WireType`
+- `ElectricalAttribute`
+- `Include`
+
+规则：
+
+- NetName 唯一；
+- 线型来自用户既有规则/旧表；
+- 电气属性来自官方资料；
+- 没依据就留空，不猜；
+- `Include=no` 不进入最终表。
 
 ## 3. 固定输出
-
-统一生成：
 
 ```text
 output/
@@ -125,9 +127,9 @@ output/
 └─ validation_report.md
 ```
 
-### 3.1 `normalized_connections.csv`
+### `normalized_connections.csv`
 
-这是最终接线关系的机器可审计版本，固定列：
+固定列：
 
 ```text
 SheetName
@@ -141,156 +143,82 @@ SignalDefinition
 ElectricalAttribute
 ```
 
-最终 Excel 必须由该文件生成。
+其中 `BoardPin` 是脚本从 AD 数据求出的，不是人工抄入。
 
-### 3.2 `wiring_table.xlsx`
+### `wiring_table.xlsx`
 
-每个 `SheetName` 生成一个接线 Sheet，最后固定增加 `连接器型号` Sheet。
+每个 `SheetName` 一个接线 Sheet，最后固定 `连接器型号` Sheet。
 
-接线 Sheet 固定列：
+接线 Sheet：
 
 | 序号 | 连接点1代号 | 节点号1 |  | 连接点2代号 | 节点号2 | 线型 | 信号定义 | 电气属性/备注 |
 |---:|---|---|---|---|---|---|---|---|
 
-其中：
+映射：
 
-- 连接点1 = `CableEnd`
-- 节点号1 = `CablePin`
-- D 列为空白视觉分隔列
-- 连接点2 = `BoardConnector`
-- 节点号2 = `BoardPin`
-- 线型/信号定义/电气属性来自 `signal_catalog.csv`
-
-`连接器型号` Sheet 固定列：
-
-| 线缆端编号 | 连接器型号/规格 | 公母/端接形式 | 对接板端 | 对接对象 | 说明 |
-|---|---|---|---|---|---|
-
-样式固定为白底、黑字、浅灰表头、细边框、自动换行、冻结表头。
-
-### 3.3 `validation_report.md`
-
-必须给出：
-
-- `PASS` / `FAIL`
-- 连接数
-- 接线 Sheet 数量
-- Excel 回读是否与 normalized 数据完全一致
-- Warning 数量
-
-只有 `PASS` 才能交付。
+- 连接点1 = CableEnd
+- 节点号1 = CablePin
+- 连接点2 = TargetBoardConnector
+- 节点号2 = **脚本从 AD 求出的 BoardPin**
 
 ## 4. 固定脚本
-
-使用：
 
 ```bash
 python scripts/build_wiring_table.py input output
 ```
 
-脚本必须完成：
+必须执行：
 
-1. 检查三个输入文件存在；
-2. 检查固定列；
-3. 检查 AD `BoardConnector + BoardPin` 唯一；
-4. 检查同一 AD pin 不属于多个 Net；
-5. 检查 `CableEnd + CablePin` 不重复；
-6. 检查同一个板端 pin 不被重复接出；
-7. 检查 `cable_map.csv` 中每个板端 pin 都存在于 AD 表；
-8. 从 AD 表取得该 pin 的真实 `NetName`；
-9. 检查每个 Net 都存在于 `signal_catalog.csv`；
-10. 按 `Include` 过滤；
-11. 生成 `normalized_connections.csv`；
-12. 生成 Excel；
-13. 重新打开 Excel；
-14. 将每个接线 Sheet 逐行回读；
-15. 与 normalized 数据逐字段比较；
-16. 全部一致才写 `PASS`。
+1. 校验三个输入文件和固定列；
+2. 建立 AD `(BoardConnector, BoardPin) -> NetName`；
+3. 建立 AD `(BoardConnector, NetName) -> BoardPin候选`；
+4. 校验外部 `CableEnd + CablePin` 唯一；
+5. 用 `TargetBoardConnector + NetName` 自动求 BoardPin；
+6. 0 个候选：FAIL；
+7. 1 个候选：自动采用；
+8. 多个候选：FAIL，必须使用 `BoardPinHint`；
+9. `BoardPinHint` 必须再次与 AD 数据一致；
+10. 检查板端 pin 不被意外重复接出；
+11. 合并 signal_catalog；
+12. 生成 normalized CSV；
+13. 由 normalized CSV 生成 Excel；
+14. 重新打开 Excel；
+15. 对每个连接逐字段回读；
+16. 与 normalized 数据完全一致才 PASS。
 
-脚本禁止：
+## 5. 原始资料与固定输入的关系
 
-- 猜 pin；
-- 猜 Net；
-- 自动镜像 pin；
-- 自动补电气参数；
-- 靠 Excel 公式计算接线映射。
+用户每次最好给：
 
-## 5. 原始资料如何进入固定输入
+1. **AD 导出的连接/Netlist 数据**；
+2. **外部设备 connector pin definition / 旧 pinout**；
+3. 若项目已有，给已有的线型/电气属性规则。
 
-用户提供的原始资料可以是：
+AI 可以读取 PDF、旧 Excel、截图等，但正式生成前必须把信息收敛为三个固定 CSV。
 
-- Altium 工程/Netlist/连接表；
-- PDF；
-- 设备 connector pin definition；
-- 旧接线表；
-- 用户说明。
+所以以后对用户而言，最推荐的原始资料就是：
 
-但这些都只是**输入资料来源**，不能直接成为最终生成步骤。
+```text
+AD 线表/Netlist
++ 设备端 Pin 定义
++ 项目接线规则（若已有）
+```
 
-AI 的任务是把原始资料转换成固定的三个 CSV。转换完成后，正式生成只认三个 CSV。
+## 6. 工程规则
 
-优先级：
+- Field + / -、High Current Field + / - 不混；
+- Shield / PMG Shield / Chassis Ground / Signal Ground 不混；
+- IN / OUT 不互换；
+- NC / Reserved 由 Include 决定；
+- 多针并联若导致同一 `(Connector, Net)` 多个候选，必须显式 Hint；
+- 表内始终使用标准 pin number，不做人为镜像。
 
-1. 用户当前明确说明；
-2. AD pin-to-net 数据；
-3. 用户确认的 cable physical mapping；
-4. 官方设备/连接器资料；
-5. 旧接线表；
-6. 其他资料仅作辅助。
+## 7. 审核与交付
 
-资料冲突时不得静默选一个值。
+第一层硬门槛是脚本 PASS，负责 pin 映射、重复、生成和 Excel 回读一致性。
 
-## 6. 关键工程规则
+之后主代理做语义审核：方向、公母、连接器型号、信号定义、线型、电气属性和易混信号。
 
-- Field + / Field -、High Current Field + / - 不得混并；
-- Shield、PMG Shield、Chassis Ground、Signal Ground 不得混淆；
-- IN/OUT 不得因名称相似而互换；
-- 多针并联必须在 `cable_map.csv` 中逐针展开；
-- NC/Reserved 是否包含由 `signal_catalog.csv -> Include` 明确决定；
-- 节点号永远写标准 pin number；
-- 连接器正视图与焊接面视图只影响操作人员看图，不改变表内 pin number。
+若环境支持子代理，继续两个独立完整审核；任何修改都必须重新运行脚本并让此前人工审核结果作废。
 
-## 7. 交付前审核
-
-### 7.1 第一层：确定性脚本审核
-
-`validation_report.md` 必须为 PASS。
-
-这是 pin 映射和 Excel 数据一致性的主要保障，不允许用人工抽查替代。
-
-### 7.2 第二层：主代理语义审核
-
-主代理仍需检查：
-
-- 两端物理方向；
-- 公母/连接器型号；
-- Sheet 分组；
-- 信号定义；
-- Field / Shield / Ground / IN-OUT 等易混语义；
-- 电气属性来源；
-- 线型来源。
-
-### 7.3 第三层：两个独立子代理审核
-
-若运行环境支持子代理，继续执行两个独立完整审核。任何一方发现问题：
-
-1. 修改输入 CSV；
-2. 重新运行脚本；
-3. 原审核结果作废；
-4. 三方重新审核同一最终版本。
-
-若环境不支持子代理，必须明确说明，不得假装执行。
-
-## 8. 最终交付条件
-
-同时满足：
-
-- 三个固定输入已保存；
-- Python 脚本运行成功；
-- `validation_report.md = PASS`；
-- Excel 回读与 normalized 数据一致；
-- 主代理语义审核通过；
-- 若环境支持子代理，则两个子代理也通过；
-- 最近一次审核后未再修改文件。
-
-最终交付以 `wiring_table.xlsx` 为主，同时保留 `normalized_connections.csv` 和 `validation_report.md` 供追溯。
+只有 `validation_report.md = PASS` 且语义审核通过才交付。
