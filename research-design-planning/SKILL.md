@@ -1,6 +1,6 @@
 ---
 name: research-design-planning
-description: Turn an engineering-prestudy evidence base into design alternatives, trade studies, user-confirmed decisions, project stages, required outputs, acceptance criteria, dependencies, and a Dida handoff. Use after enough understanding and research exists to choose what to build or learn next, while allowing a return to research when evidence is insufficient.
+description: Turn an engineering-prestudy evidence base into design alternatives, trade studies, user-confirmed decisions, explicit handling of discovered pitfalls/constraints, project stages, required outputs, acceptance criteria, dependencies, and a Dida handoff. Use after enough understanding and research exists to choose what to build or learn next, while allowing a return to research when evidence is insufficient.
 ---
 
 # Research Design & Planning
@@ -16,19 +16,39 @@ Read:
 - `knowledge_model.yaml`;
 - `evidence.jsonl`;
 - `open_questions.yaml`;
+- `pitfalls.yaml`;
 - `decisions.yaml`;
 - existing `project_plan.yaml`.
 
 ## Design discussion loop
 
 1. Restate the engineering objective and current constraints.
-2. Generate only materially distinct alternatives.
-3. Define evaluation criteria before choosing a winner.
-4. Compare alternatives using evidence, uncertainty, cost/complexity, implementation risk, compatibility, testability, maintainability, and user-specific constraints when relevant.
-5. Mark assumptions and missing evidence.
-6. If a missing fact could change the decision, create a blocking research question and return to `research-landscape`.
-7. Present tradeoffs to the user and refine through discussion.
-8. Record the result as a `DECISION` with status.
+2. Review unresolved HIGH/CRITICAL pitfalls before proposing architecture.
+3. Generate only materially distinct alternatives.
+4. Define evaluation criteria before choosing a winner.
+5. Compare alternatives using evidence, uncertainty, cost/complexity, implementation risk, compatibility, testability, maintainability, discovered pitfalls, and user-specific constraints when relevant.
+6. Mark assumptions and missing evidence.
+7. If a missing fact or unresolved pitfall could change safety/feasibility/architecture, create a blocking research question and return to `research-landscape`.
+8. Present tradeoffs to the user and refine through discussion.
+9. Record the result as a `DECISION` with status.
+
+## Pitfall routing
+
+Do not merely mention known pitfalls in prose. Route each relevant item according to its `action`:
+
+- `WATCH` → carry into stage risks/notes when it remains relevant but does not require a hard gate.
+- `DESIGN_CONSTRAINT` → turn into an explicit architecture/component/layout/interface constraint and trace it to the pitfall/evidence IDs.
+- `VERIFY` → turn into an acceptance criterion, calculation, inspection, simulation, test, or bring-up check.
+- `BLOCKER` → prevent approval of dependent decisions/stages until mitigated or explicitly resolved through more research, experiment, or user decision.
+
+Examples:
+
+- creepage/clearance requirement → PCB/layout design constraint + layout review/measurement verification;
+- floating/high-common-mode measurement hazard → isolation/reference architecture constraint + bench verification;
+- protocol corner-case discovered in predecessor issues → verification testcase;
+- uncertain maximum voltage that determines component safety → BLOCKER until bounded.
+
+A pitfall can generate more than one downstream control, e.g. both a design constraint and a verification item, but keep one authoritative pitfall record and reference its ID.
 
 ## Decision states
 
@@ -47,6 +67,7 @@ Each important choice should capture:
 - alternatives;
 - evaluation criteria;
 - evidence IDs;
+- relevant pitfall IDs;
 - uncertainty/assumptions;
 - sensitivity to criteria changes when meaningful;
 - recommendation;
@@ -64,10 +85,13 @@ Each stage should contain:
 - `outputs`;
 - `acceptance`;
 - `dependencies`;
-- relevant decisions/open questions;
-- optional risks.
+- relevant decisions/open questions/pitfalls;
+- explicit design constraints and verification gates where applicable;
+- optional residual risks.
 
 A stage is not complete just because tasks were executed; its required outputs and acceptance criteria must be satisfied.
+
+Do not mark a stage ready when an applicable `BLOCKER` pitfall remains unresolved.
 
 ## Dida handoff
 
@@ -80,7 +104,16 @@ Each work package should contain:
 - expected outputs;
 - acceptance criteria;
 - dependencies;
-- relevant blocking question/decision IDs.
+- relevant blocking question/decision/pitfall IDs.
+
+Convert actionable pitfall controls into work packages only when they require real work, for example:
+
+- calculate/check creepage and clearance for the selected voltage/environment assumptions;
+- verify common-mode and isolation margins;
+- add and execute a specific fault/corner-case test;
+- confirm an unresolved safety-critical parameter from primary documentation.
+
+Do not turn every low-impact `WATCH` item into a task.
 
 Default:
 
@@ -96,15 +129,17 @@ Do not directly schedule work. Once the user approves the handoff, route to the 
 If new research supersedes a previous decision or stage:
 
 1. record the new decision and why;
-2. increment the project-plan revision;
-3. generate proposed Dida changes;
-4. require user approval before mutating existing tasks.
+2. update related pitfall status/mitigation if applicable;
+3. increment the project-plan revision;
+4. generate proposed Dida changes;
+5. require user approval before mutating existing tasks.
 
 ## Output
 
 Maintain:
 
 - `decisions.yaml`;
+- `pitfalls.yaml` status/mitigation linkage;
 - `project_plan.yaml`;
 - `dida_handoff.yaml`;
 - `reports/implementation_plan.md`.
