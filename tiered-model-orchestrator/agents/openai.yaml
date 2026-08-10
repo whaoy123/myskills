@@ -1,0 +1,4 @@
+interface:
+  display_name: "分层模型任务编排"
+  short_description: "高级模型负责方案审核验收，多个执行模型并行完成具体任务"
+  default_prompt: "使用 $tiered-model-orchestrator 先选择审核与执行模型，再并行完成并验收这个任务。"
