@@ -1,6 +1,6 @@
 ---
 name: engineering-prestudy
-description: Orchestrate an engineering or technical prestudy from an initially unfamiliar topic through understanding, current-state research, evidence collection, design tradeoffs, and an implementation plan. Preserve changing goals, separate FACT/INFERENCE/DECISION, maintain open questions and stop conditions, reuse user context, and hand approved work packages to Dida planning without directly owning scheduling.
+description: Orchestrate an engineering or technical prestudy from an initially unfamiliar topic through understanding, current-state research, predecessor implementation study, pitfall/hazard discovery, evidence collection, design tradeoffs, and an implementation plan. Preserve changing goals, separate FACT/INFERENCE/DECISION, maintain open questions, pitfalls and stop conditions, reuse user context, and hand approved work packages to Dida planning without directly owning scheduling.
 ---
 
 # Engineering Prestudy
@@ -11,8 +11,8 @@ This is the orchestration skill. It does not duplicate specialist logic.
 
 - `user-context-profile` -> unified user background/knowledge/preferences.
 - `research-understanding` -> understanding loop and project knowledge model.
-- `research-landscape` -> current-state research, evidence, source library, reusable artifacts.
-- `research-design-planning` -> trade studies, decisions, staged deliverables, Dida handoff.
+- `research-landscape` -> current-state research, evidence, predecessor implementations, pitfall discovery, source library, reusable artifacts.
+- `research-design-planning` -> trade studies, pitfall routing, decisions, staged deliverables, Dida handoff.
 
 ## Fixed runtime project structure
 
@@ -25,6 +25,7 @@ This is the orchestration skill. It does not duplicate specialist logic.
 │   ├── sources.csv
 │   ├── evidence.jsonl
 │   ├── open_questions.yaml
+│   ├── pitfalls.yaml
 │   ├── decisions.yaml
 │   ├── project_plan.yaml
 │   └── dida_handoff.yaml
@@ -63,7 +64,7 @@ Do not demand a perfect research question up front. The research goal may evolve
 3. Create or load `.prestudy/research_state/`.
 4. Record `initial_goal` and `current_goal` separately.
 5. Inventory existing user-provided sources before browsing for duplicates.
-6. Create the first research questions and open-question pool.
+6. Create the first research questions, open-question pool, and empty pitfall register.
 7. Produce `reports/research_brief.md` before broad research.
 8. Enter the most appropriate state: `UNDERSTAND`, `RESEARCH`, or `DESIGN_PLAN`.
 
@@ -76,7 +77,7 @@ UNDERSTAND <-> RESEARCH <-> DESIGN_PLAN
 The flow is intentionally reversible.
 
 - If research exposes a prerequisite concept gap -> return to `UNDERSTAND`.
-- If design reveals missing evidence -> return to `RESEARCH`.
+- If design reveals missing evidence or an unbounded high-impact pitfall -> return to `RESEARCH`.
 - Do not force stage completion because the previous stage already ran once.
 
 ## Goal revision
@@ -100,7 +101,7 @@ Never present an inference as if the source explicitly stated it.
 
 ## Open questions
 
-Every unresolved item belongs in `open_questions.yaml`.
+Every unresolved information/analysis/decision item belongs in `open_questions.yaml`.
 
 Types:
 
@@ -114,22 +115,44 @@ Impact may be `LOW|MEDIUM|HIGH|BLOCKING`.
 
 Only actionable/blocking questions become Dida candidates.
 
+## Pitfalls
+
+Material failure modes and hidden engineering constraints belong in `pitfalls.yaml`, not mixed into generic open questions.
+
+A pitfall captures what can go wrong, why, consequence, applicable conditions, mitigation, evidence, impact, action and status.
+
+Action routing:
+
+- `WATCH` -> keep visible as residual risk/attention item;
+- `DESIGN_CONSTRAINT` -> make it an explicit design requirement;
+- `VERIFY` -> create an acceptance/calculation/test/inspection gate;
+- `BLOCKER` -> prevent dependent design/planning approval until resolved or mitigated.
+
+Examples include insulation/creepage constraints, floating/common-mode measurement hazards, unsafe transformer/CT states, thermal/current derating, protocol corner cases, CDC/reset issues, version/toolchain traps, and misleading verification assumptions.
+
+Do not add generic checklist items that are not plausibly relevant to the current project.
+
 ## Stop conditions
 
 Research questions may become `SATURATED` when their configured stop rule is met. Typical criteria:
 
-- required primary source found;
-- minimum independent-source count met;
-- important contradictions resolved or explicitly documented;
-- repeated searches no longer produce materially new information.
+- mechanism sufficiently understood;
+- main representative routes known;
+- at least one credible predecessor implementation found when applicable;
+- relevant high-impact pitfalls actively searched for and recorded/handled;
+- important claims supported by adequate evidence;
+- blocking unknowns or risks resolved or routed;
+- further searching has low expected decision value.
 
-Do not equate saturation with certainty.
+Do not equate saturation with certainty and do not require every non-blocking question or watch item to disappear.
 
 ## Dida boundary
 
 Research determines what should be done and what outputs/acceptance criteria are required. Dida owns task breakdown, estimation, scheduling, and progress.
 
 Research writes `dida_handoff.yaml` only. It must not silently mutate the user's task plan.
+
+Actionable pitfall controls may become work packages, especially `DESIGN_CONSTRAINT`, `VERIFY`, and `BLOCKER` items. Low-impact `WATCH` items should not automatically become tasks.
 
 If Dida skills are available, hand off approved work packages to:
 
