@@ -70,6 +70,12 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 | [grilling](grilling/SKILL.md) | 对计划、决定或想法进行持续压力测试，逐题追问并给出建议答案，直到达成共识。 |
 | [grill-me](grill-me/SKILL.md) | 以连续追问（/grilling 会话）打磨计划或设计。 |
 
+### Workflow Orchestration
+
+| Skill | Description |
+|-------|-------------|
+| [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | 由主控模型负责方案、任务派发、审核和最终验收，由一个或多个执行模型在独立 Codex 任务中并行实现与测试；每次触发先确认模型和并发数。 |
+
 ## Runtime-state rule
 
 Distributable skills must stay stateless. Real user data and project runtime data live outside the skill package, for example in `~/.prestudy/user-context/` and `<project>/.prestudy/`. Do not commit these runtime directories, downloaded research libraries, task data, credentials, or personal local paths into this repository.
