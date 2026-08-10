@@ -1,0 +1,58 @@
+schema_version: 1
+runtime_root: "~/.prestudy/user-context"
+files:
+  profile.yaml:
+    required:
+      - schema_version
+      - identity
+      - roles
+      - long_term_goals
+      - resources
+      - constraints
+  knowledge.yaml:
+    required:
+      - schema_version
+      - domains
+    domain_levels:
+      - unknown
+      - beginner
+      - foundational
+      - intermediate
+      - advanced
+  preferences.yaml:
+    required:
+      - schema_version
+      - explanation
+      - response
+      - research
+  context_meta.yaml:
+    required:
+      - schema_version
+      - initialized
+      - state
+      - sources
+      - pending_promotions
+    states:
+      - PARTIAL
+      - COMPLETE_ENOUGH
+ownership:
+  dida_planning_profile:
+    - schedule
+    - energy
+    - mobility
+    - timezone
+    - planning_capacity
+  dida_planning_memory:
+    - tool_environment
+    - reusable_workflow
+    - cross_project_agreement
+  local_user_context:
+    - background
+    - long_term_goals
+    - knowledge
+    - learning_preferences
+  project_state:
+    - project_specific_understanding
+    - misconceptions
+    - open_questions
+    - project_decisions

@@ -1,0 +1,47 @@
+schema_version: 1
+state_root: "<project>/.prestudy/research_state"
+required_files:
+  - project.yaml
+  - knowledge_model.yaml
+  - research_questions.yaml
+  - sources.csv
+  - evidence.jsonl
+  - open_questions.yaml
+  - decisions.yaml
+  - project_plan.yaml
+  - dida_handoff.yaml
+project_stage:
+  - UNDERSTAND
+  - RESEARCH
+  - DESIGN_PLAN
+research_question_status:
+  - OPEN
+  - ACTIVE
+  - BLOCKED
+  - SATURATED
+  - CLOSED
+open_question_type:
+  - MISSING_INFORMATION
+  - SOURCE_CONFLICT
+  - NEEDS_EXPERIMENT
+  - NEEDS_ENGINEERING_ANALYSIS
+  - NEEDS_USER_DECISION
+open_question_impact:
+  - LOW
+  - MEDIUM
+  - HIGH
+  - BLOCKING
+decision_status:
+  - PROPOSED
+  - CONFIRMED
+  - SUPERSEDED
+  - REJECTED
+evidence_type:
+  - FACT
+  - INFERENCE
+rules:
+  - FACT requires source_id and should include a locator when available.
+  - INFERENCE requires one or more basis evidence IDs.
+  - CONFIRMED decisions may become hard planning assumptions.
+  - Initial goal must never be overwritten by a revised current goal.
+  - Reports are derived outputs and are not authoritative state.

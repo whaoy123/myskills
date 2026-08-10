@@ -1,0 +1,22 @@
+schema_version: 1
+required_top_level:
+  - schema_version
+  - source_plan_revision
+  - status
+  - approval_required
+  - work_packages
+status:
+  - DRAFT
+  - APPROVED
+  - HANDED_OFF
+work_package_required:
+  - id
+  - stage
+  - title
+  - expected_outputs
+  - acceptance
+  - dependencies
+rules:
+  - Research owns engineering work packages, outputs, acceptance, and dependencies.
+  - Dida owns task breakdown, estimation, scheduling, and progress.
+  - Existing Dida tasks must not be materially changed because of research revisions without user approval.

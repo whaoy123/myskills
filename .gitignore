@@ -1,0 +1,12 @@
+# Private runtime state — never distribute/commit
+**/.prestudy/
+.prestudy/
+.env
+.env.*
+*.local.yaml
+*.local.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
