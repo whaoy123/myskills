@@ -16,8 +16,8 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 
 | Skill | Description |
 |-------|-------------|
-| [connector-wiring-table-generator](connector_wiring_table_skill/SKILL.md) | Generate polished xlsx wiring tables for adapter cables and harnesses from schematics, connector pin definitions, and example workbooks. Connector-agnostic — works with circular, D-sub, aviation, terminal block, and board-to-wire connectors. |
-| [pcb-soldering-table-from-schematic](pcb_soldering_table_skill/SKILL.md) | Generate PCB soldering/assembly checklists from schematics, BOMs, and assembly drawings. Outputs a formatted xlsx with designators, part numbers, packages, quantities, solder joint counts, and notes for the soldering technician. |
+| [connector-wiring-table-generator](connector_wiring_table_skill/SKILL.md) | Fixed three-input workflow: Altium pin-to-net CSV + cable physical mapping CSV + signal catalog CSV. Python validates every pin mapping, generates the xlsx, reads it back, and requires a PASS report before delivery. |
+| [pcb-soldering-table-from-schematic](pcb_soldering_table_skill/SKILL.md) | Fixed BOM + component-rules workflow. Python calculates quantities, SMD/THT solder joints, fixed-pin counts and totals, generates the xlsx, and verifies it by read-back. |
 
 ### Document Production
 
@@ -47,11 +47,10 @@ Reusable Codex skills for hardware design and technical documentation workflows.
 | [dida-task-progress](dida-planning-skills/dida-task-progress/SKILL.md) | 开始/暂停/等待/恢复/更新进度/完成/删除任务，记录专注与实际时间证据，更新父任务进度并追加校准批注。 |
 | [dida-weekly-review](dida-planning-skills/dida-weekly-review/SKILL.md) | 周复盘：逾期与截止风险、停滞父任务、等待依赖、估时绩效、容量与下周任务池。 |
 
-### Hardware Design / Altium & Analog
+### Hardware Design / Analog
 
 | Skill | Description |
 |-------|-------------|
-| [altium-schematic-autowire](altium-schematic-autowire/SKILL.md) | 根据已确定的元件/引脚/网络连接关系，生成可审计的 Altium Designer 原理图批量放置与自动连线方案（DelphiScript/.PrjScr、CSV、校验报告）；不替代电路拓扑决策。 |
 | [analog-acquisition-error-budget](analog-acquisition-error-budget/SKILL.md) | 计算/合并/审计模拟采集与 ADC 链路误差：分压器、分流、隔离放大器、运放、滤波器、多路复用器、ADC、基准、时钟、PCB、RMS 算法与校准；统一折算到报告端并分开最坏值与 RSS。 |
 
 ### Interactive Questioning
@@ -67,5 +66,8 @@ Each skill lives in its own directory with a `SKILL.md` that serves as the skill
 
 - `agents/` — Agent configuration for OpenCode/Codex environments
 - `references/` — Reference documents for coding standards and style guides
-- `templates/` — Template spreadsheets for output formatting
+- `schemas/` — Fixed machine-readable input/output contracts
+- `scripts/` — Deterministic generation, calculation, and validation
+- `templates/` — Template spreadsheets and input examples
 - `examples/` — Example outputs for format reference
+- `tests/` — Regression tests for deterministic logic

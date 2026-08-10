@@ -1,325 +1,296 @@
 ---
 name: connector-wiring-table-generator
-summary: 从原理图、连接器针脚定义、旧接线表和用户说明生成可直接用于做线/验线的标准接线表 Excel。
-description: Use this skill when the user provides schematics, connector pin tables, wiring examples, PDFs, screenshots, or verbal background and needs a polished xlsx wiring table for an adapter cable or harness. The skill emphasizes physical cable endpoints, mating direction, connector naming, pin numbering, multi-pin parallel nets, NC pins, wire type, concise styling, connector-description sheets, and electrical characteristics sourced from authoritative connector documentation such as the AVRplus connector pin definition PDF.
+description: 从固定格式的 Altium 引脚-网络表、线缆物理映射表和信号属性表，生成并脚本校验可直接用于做线/验线的标准接线表 Excel。优先使用结构化输入和确定性 Python 校验，不从截图人工抄 pin，不依赖 LLM 计算或逐行生成 Excel。
 ---
 
-# 通用线缆接线表生成 Skill
+# Connector Wiring Table Generator
 
 ## 1. 目标
 
-将原理图、连接器定义、旧接线表、用户说明整理为可直接交给做线/焊线/验线人员使用的 `.xlsx` 接线表。
+把接线表流程固定成：
 
-核心流程：
+```text
+固定输入 3 份 CSV
+    ↓
+Python 结构校验
+    ↓
+生成唯一 normalized_connections.csv
+    ↓
+Python 生成 wiring_table.xlsx
+    ↓
+Python 回读 Excel 与 normalized_connections.csv 逐行比较
+    ↓
+validation_report.md = PASS
+    ↓
+人工/代理做语义复核
+```
 
-> 先确认物理线缆两端与对接关系 → 提取 pin/net 映射 → 确认公母与线型 → 生成接线 Sheet → 生成连接器说明 Sheet → 补充电气属性 → 自检。
+核心原则：
 
-禁止仅凭原理图器件名猜线缆端公母、镜像关系或最终连接器型号。
+1. **AD 导出的 pin-to-net 数据是板内连接真值源。**
+2. **线缆物理映射是线缆端到板端的真值源。**
+3. **信号属性表是线型、信号定义和电气属性的真值源。**
+4. LLM 只负责从原始资料整理这三份输入、解释异常和做语义复核。
+5. pin 映射、重复检查、Excel 生成、数量和回读一致性由脚本完成。
+6. 禁止直接根据截图逐行手写最终 Excel。
+7. 不因公母正视图/焊接面镜像而修改标准 pin number。
 
-## 2. 输入资料优先级
+## 2. 固定输入
 
-1. **用户当前明确说明**：优先级最高。
-2. **用户给出的旧接线表**：用于沿用线型、命名和映射习惯。
-3. **当前原理图 / PCB 图**：用于确认板端接口、pin-to-net、左右方向、IN/OUT、多针并联。
-4. **连接器/设备官方 PDF**：用于补充 Pin、AWG、Description、Electrical Characteristics。
-5. **旧项目资料**：仅作辅助，不能覆盖当前用户明确说明。
+每次任务统一使用一个 `input/` 目录，文件名和列名固定：
 
-例如 AVRplus 项目中，电气属性优先取自 `AVRplus CONNECTOR PIN DEFINITION` 表，而不是自行估算。
+```text
+input/
+├─ ad_pin_net.csv
+├─ cable_map.csv
+└─ signal_catalog.csv
+```
 
-## 3. 生成前必须确认的物理关系
+### 2.1 `ad_pin_net.csv`
 
-正式生成前要确认：
+来源：优先由 Altium Designer 工程导出/整理得到的引脚—网络表。
 
-- 线缆一端是什么连接器；
-- 线缆另一端是什么连接器；
-- 哪一端接设备，哪一端接测试板；
-- 板上 J/U 编号与线缆端 L 编号之间的关系；
-- 公头/母头；
-- 节点号按标准 pin number 还是特殊视角编号；
-- 多针并联是否展开；
-- NC/Reserved 是否保留；
-- 线型是否沿用已有接线表。
+固定列：
 
-如果用户已明确给出示意图，例如：
-
-`UTG62448SN → L1/U1、L2/J1、L3/J4、L4/U3 → 测试板 → U2/L5、J2/L6、J3/L7、U4/L8 → UTG02448P`
-
-则直接按该关系生成，不再自行改解释。
-
-## 4. Sheet 结构标准
-
-默认按用户实际方向/线缆分 Sheet。
-
-典型结构：
-
-1. `AVRplus方向`
-2. `发电机方向`
-3. `连接器型号`
-
-如果用户有其他数量要求，按用户要求。
-
-### 4.1 连接器型号 Sheet 必须保留
-
-只要接线表中使用了 L1/L2/L3... 这类线缆端编号，默认必须生成 `连接器型号` Sheet。
-
-推荐列：
-
-| 线缆端编号 | 连接器型号/规格 | 公母/端接形式 | 对接板端 | 对接对象 | 说明 |
-|---|---|---|---|---|---|
+```csv
+BoardConnector,BoardPin,NetName
+U1,1,POR_A
+U1,2,POR_B
+U1,3,POR_C
+```
 
 要求：
 
-- L1/L2... 与板上 U1/J1/J4 等明确对应；
-- 型号已知则写具体型号；
-- 型号未知但只知道类别时，不要只写笼统的“连接器”，应尽可能写准确类别，例如 `7.62mm栅栏式接线端子`、`5.0mm螺钉式接线端子`、`DB44公头`；
-- 公母关系必须以用户确认或实际对接关系为准。
+- `BoardConnector + BoardPin` 在表内唯一；
+- 同一个板端 pin 不允许属于两个不同 Net；
+- `BoardPin` 使用连接器标准引脚号；
+- 不手动按公母视角镜像；
+- 只记录与线缆/外部接口有关的连接器 pin 即可，不要求导出整板所有器件。
 
-### 4.2 已确认的端子类别命名
+如果用户能提供 AD 的连接/Netlist 数据，优先直接使用；如果只有原理图/PDF，可先由 AI 提取成该 CSV，但在最终生成前必须让脚本校验。
 
-对于当前 SPB / AVRplus 项目，以下名称作为标准写法，后续接线表与连接器型号页统一使用：
+### 2.2 `cable_map.csv`
 
-| 板端位号 | 型号 | 标准类别名称 |
-|---|---|---|
-| U1 / U2 | `DBT10-7.62-6P-GN` | `7.62mm栅栏式接线端子` |
-| J1 / J2 | `DB127V-5.0-3P-GN-S` | `5.0mm螺钉式接线端子` |
+这是**线缆物理关系真值源**。一行表示一个实际需要焊接/连接的 pin-to-pin 关系。
 
-例如 `L1` 对接 `U1` 时，连接器型号页说明应写成“对接 U1（7.62mm栅栏式接线端子）”；`L2` 对接 `J1` 时，应写成“对接 J1（5.0mm螺钉式接线端子）”。
+固定列：
 
-已知类别时不要退化成“6P连接器”“3P连接器”或“普通连接器”。
+```csv
+SheetName,CableEnd,CablePin,BoardConnector,BoardPin,CableConnectorModel,Gender,MatesTo
+AVRplus方向,L1,1,U1,1,UTG62448SN,母头,AVRplus
+AVRplus方向,L1,2,U1,2,UTG62448SN,母头,AVRplus
+```
 
-## 5. 接线 Sheet 固定列结构
+字段含义：
 
-以后默认采用下面的简洁格式：
+- `SheetName`：该连接所属输出 Sheet，例如 `AVRplus方向`、`发电机方向`；
+- `CableEnd`：L1/L2/L3...；
+- `CablePin`：线缆端标准 pin number；
+- `BoardConnector`：板上 U/J 位号；
+- `BoardPin`：板端标准 pin number；
+- `CableConnectorModel`：线缆端连接器型号；
+- `Gender`：公头/母头/端接形式；
+- `MatesTo`：线缆另一侧实际对接对象。
+
+不要默认 `CablePin == BoardPin`。即使大多数直通连接相同，也必须在 CSV 中明确写出。
+
+### 2.3 `signal_catalog.csv`
+
+这是显示名称、线型和电气属性真值源。
+
+固定列：
+
+```csv
+NetName,SignalDefinition,WireType,ElectricalAttribute,Include
+POR_A,POR Phase A,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
+POR_B,POR Phase B,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
+```
+
+要求：
+
+- `NetName` 唯一；
+- `Include=yes/no` 决定是否进入最终接线表；
+- `WireType` 只能来自用户旧表、明确说明或项目规则，不凭经验猜；
+- `ElectricalAttribute` 只来自官方资料/用户资料；没有依据则留空；
+- AI 不在生成 Excel 时再次重解释这些字段。
+
+## 3. 固定输出
+
+统一生成：
+
+```text
+output/
+├─ normalized_connections.csv
+├─ wiring_table.xlsx
+└─ validation_report.md
+```
+
+### 3.1 `normalized_connections.csv`
+
+这是最终接线关系的机器可审计版本，固定列：
+
+```text
+SheetName
+CableEnd
+CablePin
+BoardConnector
+BoardPin
+NetName
+WireType
+SignalDefinition
+ElectricalAttribute
+```
+
+最终 Excel 必须由该文件生成。
+
+### 3.2 `wiring_table.xlsx`
+
+每个 `SheetName` 生成一个接线 Sheet，最后固定增加 `连接器型号` Sheet。
+
+接线 Sheet 固定列：
 
 | 序号 | 连接点1代号 | 节点号1 |  | 连接点2代号 | 节点号2 | 线型 | 信号定义 | 电气属性/备注 |
 |---:|---|---|---|---|---|---|---|---|
 
-### 5.1 中间空白分隔列
+其中：
 
-**节点号1 与连接点2代号之间必须插入 1 个空白列**，用于视觉分隔两端连接关系。
+- 连接点1 = `CableEnd`
+- 节点号1 = `CablePin`
+- D 列为空白视觉分隔列
+- 连接点2 = `BoardConnector`
+- 节点号2 = `BoardPin`
+- 线型/信号定义/电气属性来自 `signal_catalog.csv`
 
-也就是：
+`连接器型号` Sheet 固定列：
 
-- A：序号
-- B：连接点1代号
-- C：节点号1
-- D：空白分隔列
-- E：连接点2代号
-- F：节点号2
-- G：线型
-- H：信号定义
-- I：电气属性/备注
+| 线缆端编号 | 连接器型号/规格 | 公母/端接形式 | 对接板端 | 对接对象 | 说明 |
+|---|---|---|---|---|---|
 
-空白列 D 不写数据，宽度保持窄一些即可。
+样式固定为白底、黑字、浅灰表头、细边框、自动换行、冻结表头。
 
-## 6. 线型规则
+### 3.3 `validation_report.md`
 
-优先沿用用户已有接线表中的线型，不自行换算 AWG。
+必须给出：
 
-例如现有项目中：
+- `PASS` / `FAIL`
+- 连接数
+- 接线 Sheet 数量
+- Excel 回读是否与 normalized 数据完全一致
+- Warning 数量
 
-- 普通信号：`0.5`
-- Field / High Current Field：`1.5/0.2`
+只有 `PASS` 才能交付。
 
-如果旧接线表已经给出线型，则按相同信号继承。
+## 4. 固定脚本
 
-若没有依据，必须询问用户，不能凭经验猜死。
+使用：
 
-## 7. 电气属性/备注标准
+```bash
+python scripts/build_wiring_table.py input output
+```
 
-### 7.1 来源
+脚本必须完成：
 
-优先来自设备/连接器官方针脚定义 PDF。
+1. 检查三个输入文件存在；
+2. 检查固定列；
+3. 检查 AD `BoardConnector + BoardPin` 唯一；
+4. 检查同一 AD pin 不属于多个 Net；
+5. 检查 `CableEnd + CablePin` 不重复；
+6. 检查同一个板端 pin 不被重复接出；
+7. 检查 `cable_map.csv` 中每个板端 pin 都存在于 AD 表；
+8. 从 AD 表取得该 pin 的真实 `NetName`；
+9. 检查每个 Net 都存在于 `signal_catalog.csv`；
+10. 按 `Include` 过滤；
+11. 生成 `normalized_connections.csv`；
+12. 生成 Excel；
+13. 重新打开 Excel；
+14. 将每个接线 Sheet 逐行回读；
+15. 与 normalized 数据逐字段比较；
+16. 全部一致才写 `PASS`。
 
-例如 AVRplus PDF 的 `AVRplus CONNECTOR PIN DEFINITION` 中包含：
+脚本禁止：
 
-- Pin
-- AWG
-- Description
-- Electrical Characteristics
+- 猜 pin；
+- 猜 Net；
+- 自动镜像 pin；
+- 自动补电气参数；
+- 靠 Excel 公式计算接线映射。
 
-应将其中的 `Electrical Characteristics` 简明写入接线表最后一列 `电气属性/备注`。
+## 5. 原始资料如何进入固定输入
 
-### 7.2 写法
+用户提供的原始资料可以是：
 
-只保留对做线和安全有意义的信息，不要整段照搬。
+- Altium 工程/Netlist/连接表；
+- PDF；
+- 设备 connector pin definition；
+- 旧接线表；
+- 用户说明。
 
-示例：
+但这些都只是**输入资料来源**，不能直接成为最终生成步骤。
 
-| 信号 | 电气属性/备注写法示例 |
-|---|---|
-| POR Phase A/B/C | `300/600Vac，360–2000Hz，10mA，隔离输入` |
-| PMG Phase A/B/C | `140Vac，400–5600Hz，5A` |
-| Line/Gen CT | `0.85A连续，1A/5s，隔离输入` |
-| Cable ID ± | `Cable ID 电阻检测` |
-| DC Common | `5A DC Common` |
-| +28 VDC | `5A 输入` |
-| Field ± | `300V，7A；并联高电流端时最高25A` |
-| Servo Drive Com | `0–120mA DC 电流回路` |
-| GCU On Input | `28VDC 输入` |
-| GCU 28 VDC out | `28VDC，1A 输出` |
-| GCR Status Output | `28VDC 状态输出` |
-| High Current Field ± | `300V，25A max` |
-| ROLS | `ROLS 状态/故障输入` |
-| Shield / Chassis Ground | 写清屏蔽或机壳地，不与信号地混淆 |
+AI 的任务是把原始资料转换成固定的三个 CSV。转换完成后，正式生成只认三个 CSV。
 
-若官方 PDF 没有给出电气属性，则留空或写 `资料未给出`，不要自行补参数。
+优先级：
 
-### 7.3 表尾说明行
+1. 用户当前明确说明；
+2. AD pin-to-net 数据；
+3. 用户确认的 cable physical mapping；
+4. 官方设备/连接器资料；
+5. 旧接线表；
+6. 其他资料仅作辅助。
 
-每个接线 Sheet 最后增加 1～2 行说明：
+资料冲突时不得静默选一个值。
 
-- `节点号按连接器标准引脚号填写，不因公母视图反向而手动镜像；焊接时以实物焊杯/壳体标号为准。`
-- `电气属性依据设备官方连接器定义表整理，仅用于做线与验线参考。`
+## 6. 关键工程规则
 
-如存在多针并联，再增加：
+- Field + / Field -、High Current Field + / - 不得混并；
+- Shield、PMG Shield、Chassis Ground、Signal Ground 不得混淆；
+- IN/OUT 不得因名称相似而互换；
+- 多针并联必须在 `cable_map.csv` 中逐针展开；
+- NC/Reserved 是否包含由 `signal_catalog.csv -> Include` 明确决定；
+- 节点号永远写标准 pin number；
+- 连接器正视图与焊接面视图只影响操作人员看图，不改变表内 pin number。
 
-- `同一信号多针并联已逐针展开。`
+## 7. 交付前审核
 
-## 8. 映射规则
+### 7.1 第一层：确定性脚本审核
 
-- 每一行表示一个明确连接关系；
-- 同一个源脚连接多个目标针脚时，逐行展开；
-- 多针并联必须全部展开；
-- 目标脚冲突必须报错/询问用户；
-- NC/Reserved 是否保留由用户规则决定，默认保留并标记；
-- Field + / Field -、High Current Field + / -、IN/OUT 不能因名称相近而混并；
-- Shield、PMG Shield、Chassis Ground 不得混淆；
-- 原理图网络名保持原始英文命名，必要时只在备注中补中文。
+`validation_report.md` 必须为 PASS。
 
-## 9. 公母与编号规则
+这是 pin 映射和 Excel 数据一致性的主要保障，不允许用人工抽查替代。
 
-默认原则：
+### 7.2 第二层：主代理语义审核
 
-> 接线表写连接器标准引脚号，不因公头/母头正视图或焊接面视图不同而人为镜像。
+主代理仍需检查：
 
-焊接时：
+- 两端物理方向；
+- 公母/连接器型号；
+- Sheet 分组；
+- 信号定义；
+- Field / Shield / Ground / IN-OUT 等易混语义；
+- 电气属性来源；
+- 线型来源。
 
-> 以厂家针脚图 + 实物壳体/焊杯编号为准。
+### 7.3 第三层：两个独立子代理审核
 
-如果用户明确要求使用焊接面视角编号，才按用户规则修改。
+若运行环境支持子代理，继续执行两个独立完整审核。任何一方发现问题：
 
-## 10. 样式标准
+1. 修改输入 CSV；
+2. 重新运行脚本；
+3. 原审核结果作废；
+4. 三方重新审核同一最终版本。
 
-以后接线表统一使用简洁样式：
+若环境不支持子代理，必须明确说明，不得假装执行。
 
-- 白底；
-- 黑色正文；
-- 标题加粗；
-- 表头浅灰；
-- 少量深灰/黑色边框；
-- 不使用蓝/绿/橙等多色分区；
-- 中间空白列作为两端连接关系分隔；
-- 行高统一；
-- 自动换行；
-- 节点号、序号、线型居中；
-- 冻结表头；
-- 不使用渐变和装饰性配色。
+## 8. 最终交付条件
 
-推荐视觉：**黑字 + 白底 + 浅灰表头 + 细边框 + 中间窄空白列**。
+同时满足：
 
-## 11. 生成后自检
+- 三个固定输入已保存；
+- Python 脚本运行成功；
+- `validation_report.md = PASS`；
+- Excel 回读与 normalized 数据一致；
+- 主代理语义审核通过；
+- 若环境支持子代理，则两个子代理也通过；
+- 最近一次审核后未再修改文件。
 
-交付前至少检查：
-
-1. Sheet 数量和顺序正确；
-2. `连接器型号` Sheet 未遗漏；
-3. L1/L2... 与板端 J/U 对应正确；
-4. 已确认的端子类别名称已准确写出，不使用笼统“连接器”替代；
-5. 连接点1/连接点2方向没有写反；
-6. 节点号1 与连接点2之间存在空白分隔列；
-7. 多针并联已逐针展开；
-8. Field/High Current Field 极性与 IN/OUT 正确；
-9. 线型来自用户旧表或明确说明；
-10. 电气属性来自官方 PDF 或用户资料；
-11. 不存在人为镜像编号；
-12. 每个接线 Sheet 底部有标准说明行；
-13. Excel 可正常打开，无公式错误；
-14. 配色简洁，无多余颜色。
-
-## 12. 交付前强制三重全面审核闭环
-
-完成 Excel 后，**不得直接交付**。必须执行以下三重审核，并形成闭环：
-
-### 12.1 第一审：主代理自行全面审核
-
-主代理必须重新从全部原始资料开始，对当前最终 Excel 做一遍完整审核，至少覆盖：
-
-- 用户确认的物理拓扑、两端方向和对接关系；
-- 连接点1/2、公母、L编号与板端 J/U 位号；
-- 每一个源针脚到目标针脚的映射；
-- 节点号是否存在镜像/视角错误；
-- 每一个信号名称、极性、IN/OUT；
-- Field、High Current Field、Servo、Shield、Chassis Ground 等易混信号；
-- 多针并联是否逐针展开、是否有漏针/重复针/目标脚冲突；
-- NC/Reserved 的处理；
-- 线型是否与旧接线表/用户说明一致；
-- 电气属性是否逐项对应官方资料，是否错行、漏项、误抄；
-- 连接器型号页、端子类别、公母和对接对象；
-- Sheet 数量、顺序、表头、空白分隔列、说明行；
-- 样式、列宽、换行、可读性；
-- Excel 能否正常打开、是否存在公式或结构错误。
-
-### 12.2 第二审、第三审：两个独立子代理分别全面审核
-
-必须另外启动 **2 个彼此独立的子代理**，分别审核同一份当前最终文件。
-
-要求：
-
-- 两个子代理都必须拿到完成审核所需的全部输入：原理图、PCB/截图、旧接线表、连接器定义/官方 PDF、用户确认规则、最终 Excel；
-- 两个子代理都必须从头到尾独立检查整份文件；
-- 可以设置不同重点，例如子代理1偏 pin-to-pin / 方向 / 公母，子代理2偏资料一致性 / 电气属性 / 格式，但**每个子代理都必须覆盖全部审核项，不能只做专项或抽查**；
-- 子代理不得依据主代理或另一个子代理的“已通过结论”跳过任何区域。
-
-如果当前运行环境确实不支持子代理，禁止假装已经执行；必须明确告诉用户该步骤未能执行。
-
-### 12.3 发现问题后的重审规则
-
-任意审核者发现任何问题后：
-
-1. 先修正；
-2. 修改后此前所有审核结果全部作废；
-3. **重新执行完整的三重审核：主代理 + 子代理1 + 子代理2；**
-4. 三个审核者都必须从第一页、第一行、第一项资料开始重新全面检查；
-5. 不允许只检查刚修改的针脚、Sheet 或单元格；
-6. 若新一轮又发现问题，则继续“修改 → 三方全部全面重审”；
-7. 直到三方在同一份最终版本上都确认无问题，才能交付。
-
-### 12.4 每轮必须全量，禁止记忆式免检
-
-每次审核都是**完整重新审核**，不是差异审核。
-
-禁止：
-
-- “这个位置上一轮看过，这轮不看”；
-- “只复核修改点”；
-- “只检查上一轮报错区域”；
-- “另一个代理检查过了，所以这里跳过”；
-- “历史版本这个区域是对的，所以最终版默认正确”；
-- 抽查部分 pin、部分 Sheet、部分连接器后就宣布通过。
-
-**审核对象永远是当前最新完整 Excel + 全部原始资料。**
-
-### 12.5 独立性要求
-
-为了避免三次审核变成重复确认：
-
-- 每个审核者都应独立形成问题清单；
-- 在其完成独立检查前，不把其他审核者的问题清单作为检查范围的替代；
-- 可以在独立审核完成后合并三方问题并统一修正。
-
-## 13. 最终交付条件
-
-只有同时满足以下条件才能给用户下载链接：
-
-- 主代理全面审核通过；
-- 子代理1全面审核通过；
-- 子代理2全面审核通过；
-- 三者审核的是同一份最终文件；
-- 最近一次审核后没有再修改文件；
-- 所有用户需确认的问题均已获得确认，不以猜测代替。
-
-## 14. 标准交付话术
-
-> 已按统一接线表标准生成，并完成主代理 + 两个独立子代理的三重全面审核；三方审核的是同一份最终版本，均未发现问题。  
-> [下载接线表](sandbox:/mnt/data/xxx.xlsx)
+最终交付以 `wiring_table.xlsx` 为主，同时保留 `normalized_connections.csv` 和 `validation_report.md` 供追溯。

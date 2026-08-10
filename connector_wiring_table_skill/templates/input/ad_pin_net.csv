@@ -1,0 +1,3 @@
+BoardConnector,BoardPin,NetName
+U1,1,POR_A
+U1,2,POR_B
