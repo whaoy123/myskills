@@ -1,0 +1,4 @@
+interface:
+  display_name: "硬件整机电源预算"
+  short_description: "从原理图/网表和手册计算各电源轨电流、功耗、余量与 DCDC 选型容量"
+  default_prompt: "使用 $hardware-power-budget 从原理图/Netlist/BOM 与官方数据手册建立可追溯电源预算，按 rail 汇总典型/最坏电流和功率，使用确定性脚本加一次设计余量，并在需要时回推 DCDC/LDO 输入电流和检查选型容量。"
