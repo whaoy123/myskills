@@ -62,6 +62,7 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 | Skill | Description |
 |-------|-------------|
 | [analog-acquisition-error-budget](analog-acquisition-error-budget/SKILL.md) | 计算/合并/审计模拟采集与 ADC 链路误差：统一折算到报告端并分开最坏值与 RSS，复杂场景由确定性脚本计算。 |
+| [hardware-power-budget](hardware-power-budget/SKILL.md) | 从原理图/Netlist/BOM 与官方数据手册建立整板/整机电源预算：按 rail 汇总典型/最坏电流与功耗、加一次设计余量、回推 DCDC/LDO 输入侧并检查最终选型容量。 |
 
 ### Interactive Questioning
 
