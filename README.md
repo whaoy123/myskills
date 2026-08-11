@@ -74,7 +74,7 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 
 | Skill | Description |
 |-------|-------------|
-| [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | 由主控模型负责方案、任务派发、审核和最终验收，由一个或多个执行模型在独立 Codex 任务中并行实现与测试；每次触发先确认模型和并发数。 |
+| [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | 当前对话直接作为主控，按任务拓扑派发 Explorer、Worker、Tester、Reviewer 等子代理并行执行、返修和独立审核；默认子代理使用 Luna + max，并发数自动决定，不再额外创建二级主控聊天。 |
 
 ## Runtime-state rule
 
