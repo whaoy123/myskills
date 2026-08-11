@@ -65,3 +65,14 @@ def test_dc_dc_backpropagation():
     rails = {r["name"]: r for r in result["rails"]}
     assert math.isclose(rails["VIN"]["budget_current_a"], 5 / 0.8 / 28, rel_tol=1e-12)
     assert math.isclose(result["converters"][0]["dissipation_w"], 1.25, rel_tol=1e-12)
+
+
+def test_engineering_design_value_is_numeric_but_not_guaranteed():
+    data = {
+        "rails": [{"name": "+5V", "voltage_v": 5}],
+        "loads": [{"reference": "U1", "component": "X", "quantity": 1, "rail": "+5V", "current_typ_a": 0.1, "current_design_a": 0.15, "source": "engineering assumption"}],
+    }
+    result = pb.compute(data)
+    assert math.isclose(result["rails"][0]["budget_current_a"], 0.15, rel_tol=1e-12)
+    assert result["rails"][0]["complete_for_guarantee"] is False
+    assert result["summary"]["guarantee_complete"] is False
