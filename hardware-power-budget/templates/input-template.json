@@ -1,0 +1,92 @@
+{
+  "design": {
+    "name": "Example board power budget",
+    "source_input": "28 VDC nominal"
+  },
+  "design_margin_percent": 30,
+  "rails": [
+    {
+      "name": "VIN_28",
+      "voltage_v": 28,
+      "domain": "primary"
+    },
+    {
+      "name": "+5V_SEC",
+      "voltage_v": 5,
+      "domain": "secondary",
+      "selected_rating_current_a": 1.0
+    },
+    {
+      "name": "+15V_SEC",
+      "voltage_v": 15,
+      "domain": "secondary",
+      "selected_rating_current_a": 0.05
+    },
+    {
+      "name": "-15V_SEC",
+      "voltage_v": -15,
+      "domain": "secondary",
+      "selected_rating_current_a": 0.05
+    }
+  ],
+  "loads": [
+    {
+      "reference": "U1-U10",
+      "component": "Example isolated amplifier",
+      "quantity": 10,
+      "rail": "+5V_SEC",
+      "current_typ_a": 0.02,
+      "current_max_a": 0.03,
+      "basis": "datasheet maximum supply current",
+      "source": "datasheet p.xx / electrical characteristics"
+    },
+    {
+      "reference": "U11-U20",
+      "component": "Example op amp",
+      "quantity": 10,
+      "rail": "+15V_SEC",
+      "current_typ_a": 0.001,
+      "current_max_a": 0.0015,
+      "basis": "per-amplifier supply current",
+      "source": "datasheet p.xx"
+    },
+    {
+      "reference": "U11-U20",
+      "component": "Example op amp",
+      "quantity": 10,
+      "rail": "-15V_SEC",
+      "current_typ_a": 0.001,
+      "current_max_a": 0.0015,
+      "basis": "per-amplifier supply current; same package counted on both rails",
+      "source": "datasheet p.xx"
+    }
+  ],
+  "converters": [
+    {
+      "name": "DCDC_28_TO_5",
+      "kind": "dc_dc",
+      "input_rail": "VIN_28",
+      "output_rails": [
+        "+5V_SEC"
+      ],
+      "efficiency_typ": 0.88,
+      "efficiency_min": 0.84,
+      "input_quiescent_current_a": 0,
+      "source": "selected converter datasheet",
+      "rated_output_power_w": 3.0
+    },
+    {
+      "name": "DCDC_28_TO_PM15",
+      "kind": "dc_dc",
+      "input_rail": "VIN_28",
+      "output_rails": [
+        "+15V_SEC",
+        "-15V_SEC"
+      ],
+      "efficiency_typ": 0.85,
+      "efficiency_min": 0.8,
+      "source": "selected converter datasheet",
+      "rated_output_power_w": 1.0
+    }
+  ]
+}

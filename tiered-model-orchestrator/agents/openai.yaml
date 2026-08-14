@@ -1,0 +1,4 @@
+interface:
+  display_name: "多代理任务编排"
+  short_description: "当前对话直接做主控，Luna max 子代理并行执行、测试和审核"
+  default_prompt: "使用 $tiered-model-orchestrator，由当前对话直接作为主控，按任务依赖派发 Luna max 子代理并行调查、实现、测试和审核，最后由当前对话完成最终验收。"

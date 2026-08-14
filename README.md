@@ -62,6 +62,7 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 | Skill | Description |
 |-------|-------------|
 | [analog-acquisition-error-budget](analog-acquisition-error-budget/SKILL.md) | 计算/合并/审计模拟采集与 ADC 链路误差：统一折算到报告端并分开最坏值与 RSS，复杂场景由确定性脚本计算。 |
+| [hardware-power-budget](hardware-power-budget/SKILL.md) | 从原理图/Netlist/BOM 与官方数据手册建立整板/整机电源预算：按 rail 汇总典型/最坏电流与功耗、加一次设计余量、回推 DCDC/LDO 输入侧并检查最终选型容量。 |
 
 ### Interactive Questioning
 
@@ -69,6 +70,12 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 |-------|-------------|
 | [grilling](grilling/SKILL.md) | 对计划、决定或想法进行持续压力测试，逐题追问并给出建议答案，直到达成共识。 |
 | [grill-me](grill-me/SKILL.md) | 以连续追问（/grilling 会话）打磨计划或设计。 |
+
+### Workflow Orchestration
+
+| Skill | Description |
+|-------|-------------|
+| [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | 当前对话直接作为主控，按任务拓扑派发 Explorer、Worker、Tester、Reviewer 等子代理并行执行、返修和独立审核；默认子代理使用 Luna + max，并发数自动决定，不再额外创建二级主控聊天。 |
 
 ## Runtime-state rule
 
