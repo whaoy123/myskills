@@ -35,6 +35,7 @@ Reusable Codex skills for hardware design, technical documentation, research, an
 |-------|-------------|
 | [md-to-docx](md-to-docx/SKILL.md) | Convert Markdown documents to Word `.docx` with template-aware formatting. Designed for Chinese academic, course, and technical reports with mixed Chinese/English typography, SEQ caption numbering, and citation formatting. |
 | [material-reimbursement-table-generator](material_reimbursement_table_skill/SKILL.md) | 从各类采购发票 PDF 自动化解析明细并生成/更新科研与办公材料验收单 Excel（支持含税/不含税模式、负数折扣、运费、动态 `=SUM(...)` 公式与模板格式无损继承）。 |
+| [invoice-soldering-components-extractor](invoice_components_extractor_skill/SKILL.md) | 从采购发票 PDF 自动化过滤非焊接物料（手套、PCB、外壳、运费、折扣），提取纯焊接元器件清单（类别 + 型号 + 封装 + 数量）并导出 Excel/Markdown。 |
 
 ### Citation & Bibliography (GB/T 7714—2025)
 
