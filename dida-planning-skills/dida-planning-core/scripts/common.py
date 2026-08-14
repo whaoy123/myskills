@@ -33,8 +33,14 @@ def round_minutes(minutes: float) -> int:
 
 
 NON_WORK_ROLES = {"config", "memory_category", "memory"}
+NON_EXECUTABLE_ROLES = NON_WORK_ROLES | {"project", "phase"}
 
 
 def is_work_item(item: dict[str, Any]) -> bool:
     """Return false for configuration and durable-memory records."""
     return item.get("role") not in NON_WORK_ROLES
+
+
+def is_executable_item(item: dict[str, Any]) -> bool:
+    """Return true only for records that may occupy a personal work block."""
+    return item.get("role") not in NON_EXECUTABLE_ROLES

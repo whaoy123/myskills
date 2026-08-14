@@ -27,6 +27,13 @@ project → phase/deliverable → executable task → execution block
 - Prefer executable children with a visible deliverable and completion criterion.
 - A child should normally fit one focused session or one coherent multi-session unit.
 
+## Weekly execution grouping
+
+- A `project` is a long-lived owner, never a weekly execution item. Preserve its hard due date, but never give it a weekly execution window. If native Dida cannot clear the start date, set it to the same local date as the hard due date rather than an earlier week.
+- For work selected in a week, create or reuse one child `phase` such as `第1周｜...`, with that week as its `execution_window`.
+- The weekly phase contains every selected executable child for that week: one, several, or none after replanning. Never infer a fixed child count from examples.
+- Reparent only selected `task` or `block` records. Future or sibling work stays under the project with its own dates. Do not create duplicate weekly phases for the same project and week.
+
 ## Execution blocks
 
 - If a task can finish in one sitting and does not itself own a hard deadline, the task itself becomes the time block later.

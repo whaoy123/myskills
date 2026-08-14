@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from common import is_work_item, read_json, write_json
+from common import is_executable_item, read_json, write_json
 
 @dataclass(order=True)
 class Interval:
@@ -46,8 +46,10 @@ def schedule(data: dict[str, Any]) -> dict[str, Any]:
     scheduled = []
     unscheduled = []
     for task in sorted(data.get("tasks", []), key=score):
-        if not is_work_item(task):
-            unscheduled.append({**task, "reason": "non_work_record"}); continue
+        if not is_executable_item(task):
+            role = task.get("role")
+            reason = "non_executable_record" if role in {"project", "phase"} else "non_work_record"
+            unscheduled.append({**task, "reason": reason}); continue
         if not task.get("dependencies_ready", True):
             unscheduled.append({**task, "reason": "dependency_not_ready"}); continue
         duration = int(task.get("duration_minutes") or 0)

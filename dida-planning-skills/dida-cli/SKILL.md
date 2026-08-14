@@ -59,6 +59,7 @@ When called by the planning skills:
 - Preserve the natural-language body and unknown fields in `【Planner】...【/Planner】`.
 - Add history through task comments; do not rewrite old comments.
 - Use Dida native estimated duration, priority, dates, parent IDs, tags, recurrence, and completion state where supported. Treat `role: memory_category|memory` records as ordinary Dida objects with no scheduling/estimate side effects.
+- For daily execution views, use the exact visible tag `今天`: resolve it with `tag list`, create it only if missing, and update exact task IDs with `--tags` while preserving existing tags. The higher-level planner decides the tag membership; never tag project/phase parents merely because their date range overlaps today.
 - Inspect `references/planner-integration.md` before modifying Planner-managed content.
 
 ## Failure handling

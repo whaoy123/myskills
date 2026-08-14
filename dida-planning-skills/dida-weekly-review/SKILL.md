@@ -10,7 +10,7 @@ Produce a source-backed weekly review from Dida and write only durable task/prof
 ## Required reads
 
 1. Determine the local week boundaries in the user's current timezone.
-2. Read completed, incomplete, overdue, waiting, and upcoming-hard-deadline work tasks. Exclude `role: config|memory_category|memory` from task counts, capacity, overdue, and completion metrics.
+2. Read completed, incomplete, overdue, waiting, and upcoming-hard-deadline work tasks. Exclude `role: config|memory_category|memory` from task counts, capacity, overdue, and completion metrics. Treat `project` only as deadline context and `phase` only as a weekly grouping; count and capacity-plan only their executable `task`/`block` descendants.
 3. Read focus records in windows supported by the installed CLI.
 4. Read parent/child structures for active projects and the relevant configuration NOTE sections.
 5. Read the rebuildable estimation index or reconstruct missing samples from comments. Review memory only for stale/conflicting rules explicitly implicated by the week; never dump the whole memory store.
@@ -29,6 +29,7 @@ Produce a source-backed weekly review from Dida and write only durable task/prof
 
 - Do not create a weekly-plan document or summary task.
 - Write date/time changes only when the user asks to apply the proposed next-week plan.
+- When applying a week, reuse or create one dated `phase` beneath each affected project and place every selected task under it. The number of children is determined by that week, not by a fixed template. Never put the week window on the top-level project or pull future siblings into the weekly phase.
 - Update incorrect progress, dependencies, estimates, or profile rules only with supporting evidence.
 - Add comments to affected tasks when a review decision materially changes them.
 - Keep unfinished daily tasks in the pool for fresh judgment; do not auto-roll all forward.

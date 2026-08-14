@@ -77,6 +77,13 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(result["scheduled"], [])
         self.assertEqual(result["unscheduled"][0]["reason"], "non_work_record")
 
+    def test_project_and_phase_are_not_scheduled(self):
+        data = {"date":"2026-08-06","utc_offset":"+08:00","availability":[{"start":"09:00","end":"12:00"}],"tasks":[{"id":"p","title":"Project","role":"project","duration_minutes":60,"mobility":"movable"},{"id":"phase","title":"Week phase","role":"phase","duration_minutes":60,"mobility":"movable"},{"id":"task","title":"Task","role":"task","duration_minutes":60,"mobility":"movable"}]}
+        result = schedule(data)
+        self.assertEqual([item["id"] for item in result["scheduled"]], ["task"])
+        reasons = {item["id"]: item["reason"] for item in result["unscheduled"]}
+        self.assertEqual(reasons, {"p":"non_executable_record", "phase":"non_executable_record"})
+
     def test_no_overlap(self):
         data = {"date":"2026-08-06","utc_offset":"+08:00","availability":[{"start":"09:00","end":"12:00"}],"fixed":[{"id":"f","start":"2026-08-06T10:00:00+08:00","end":"2026-08-06T10:30:00+08:00"}],"tasks":[{"id":"a","title":"A","duration_minutes":60,"mobility":"movable","dependencies_ready":True},{"id":"b","title":"B","duration_minutes":45,"mobility":"movable","dependencies_ready":True}],"buffer_minutes":10}
         result = schedule(data)

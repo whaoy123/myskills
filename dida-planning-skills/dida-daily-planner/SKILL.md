@@ -16,7 +16,7 @@ Create a real Dida schedule, not a separate Markdown daily plan.
 ## Required reads
 
 1. Determine current date, location timezone, and requested planning date.
-2. Read Dida tasks/events for that date, nearby hard deadlines, current focus/started state, and unscheduled candidates. Exclude `role: config|memory_category|memory` from capacity and scheduling.
+2. Read Dida tasks/events for that date, nearby hard deadlines, current focus/started state, and unscheduled candidates. Read the open-task set carrying the exact tag `今天` for reconciliation. Exclude `role: config|memory_category|memory` from capacity and scheduling. Treat `project` as deadline/context only and `phase` as hierarchy context only; only `task`/`block` (or a verified unlabelled leaf) may occupy personal capacity.
 3. Read only `规划偏好｜作息与容量`, `规划偏好｜日程移动权限`, and `估时配置｜特征与风险缓冲`. Do not load general memory unless an exact task references a scheduling constraint not already in profile/task data.
 4. Update the weather task for the current day when making the daily plan.
 5. Run dependency checks and the shared scheduling engine.
@@ -34,6 +34,10 @@ Account for lunch, nap, commute, focus breaks, and task-switch buffer even when 
 
 ## Scheduling rules
 
+- A project with a long hard-deadline range may be returned by a date query. Do not schedule it or display it as an execution row. Show only the target-week `phase` and its in-scope descendants; use the project solely as a breadcrumb and deadline context.
+- Never place a weekly execution window on a project. Reuse or create a dated weekly phase under it; that phase may have any number of selected child tasks.
+- Use the exact Dida tag `今天` as the daily execution-view marker. After selecting today's executable tasks, add `今天` to those `task`/`block` records and remove it from open executable records no longer selected today; preserve all other tags.
+- Do not put `今天` on a `project`, weekly `phase`, configuration/memory record, weather reminder, or other non-work context. The daily view should filter by the native tag `今天` (normally with open status), not by every task whose date range happens to overlap today.
 - Use Dida native start/end times for actual work blocks.
 - A one-session task is its own block only when its Dida dates do not represent a hard deadline.
 - If a task owns a hard deadline, schedule a child execution task/block so the deadline remains intact.
