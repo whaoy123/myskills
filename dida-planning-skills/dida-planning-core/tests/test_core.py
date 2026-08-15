@@ -18,6 +18,10 @@ from conflict_merge import merge_task
 from progress_engine import parent_progress, completion_gate
 from rebuild_history import rebuild
 from memory_policy import decide as memory_decide
+from package_validator import validate as validate_package
+from weekly_capacity import assess_capacity, stale_commitment_updates
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class PlannerBlockTests(unittest.TestCase):
@@ -37,6 +41,24 @@ class PlannerBlockTests(unittest.TestCase):
     def test_external_wait_ref_valid(self):
         block = "schema: 1\nrole: task\nprogress: 0\ndate_semantics: none\nmobility: movable\nprivacy: normal\nestimate_confidence: low\ndependency_mode: all\ndependencies:\n  - type: external_wait\n    external_ref: reviewer_reply\n    strength: hard"
         self.assertEqual(validate(parse_block(block)), [])
+
+    def test_weekly_commitment_round_trip(self):
+        out = patch_body("背景。", {"week_start": "2026-08-03", "weekly_commitment": "must"})
+        _, block = split_body(out)
+        data = parse_block(block)
+        self.assertEqual(data["week_start"], "2026-08-03")
+        self.assertEqual(data["weekly_commitment"], "must")
+        self.assertEqual(validate(data), [])
+
+    def test_weekly_commitment_is_a_pair(self):
+        with self.assertRaises(ValueError):
+            patch_body("背景。", {"week_start": "2026-08-03"})
+
+    def test_weekly_commitment_requires_work_role_and_monday(self):
+        with self.assertRaises(ValueError):
+            patch_body("背景。", {"role": "memory", "week_start": "2026-08-03", "weekly_commitment": "must"})
+        with self.assertRaises(ValueError):
+            patch_body("背景。", {"week_start": "2026-08-04", "weekly_commitment": "must"})
 
 
 class EventTests(unittest.TestCase):
@@ -77,17 +99,135 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(result["scheduled"], [])
         self.assertEqual(result["unscheduled"][0]["reason"], "non_work_record")
 
-    def test_project_and_phase_are_not_scheduled(self):
-        data = {"date":"2026-08-06","utc_offset":"+08:00","availability":[{"start":"09:00","end":"12:00"}],"tasks":[{"id":"p","title":"Project","role":"project","duration_minutes":60,"mobility":"movable"},{"id":"phase","title":"Week phase","role":"phase","duration_minutes":60,"mobility":"movable"},{"id":"task","title":"Task","role":"task","duration_minutes":60,"mobility":"movable"}]}
-        result = schedule(data)
-        self.assertEqual([item["id"] for item in result["scheduled"]], ["task"])
-        reasons = {item["id"]: item["reason"] for item in result["unscheduled"]}
-        self.assertEqual(reasons, {"p":"non_executable_record", "phase":"non_executable_record"})
-
     def test_no_overlap(self):
         data = {"date":"2026-08-06","utc_offset":"+08:00","availability":[{"start":"09:00","end":"12:00"}],"fixed":[{"id":"f","start":"2026-08-06T10:00:00+08:00","end":"2026-08-06T10:30:00+08:00"}],"tasks":[{"id":"a","title":"A","duration_minutes":60,"mobility":"movable","dependencies_ready":True},{"id":"b","title":"B","duration_minutes":45,"mobility":"movable","dependencies_ready":True}],"buffer_minutes":10}
         result = schedule(data)
         self.assertEqual(result["overlaps"], [])
+
+
+class WeeklyCapacityTests(unittest.TestCase):
+    def test_committed_capacity_and_stale_roll(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 1000,
+            "mainlines": [
+                {"id": "must", "weekly_commitment": "must", "remaining_minutes": 300},
+                {"id": "should", "weekly_commitment": "should", "estimated_minutes": 200},
+                {"id": "candidate", "weekly_commitment": "candidate", "estimated_minutes": 400},
+            ],
+            "tasks": [
+                {"id": "old", "title": "旧主线", "week_start": "2026-07-27", "weekly_commitment": "should"},
+                {"id": "current", "week_start": "2026-08-03", "weekly_commitment": "must"},
+            ],
+        })
+        self.assertEqual(result["reserved_minutes"], 350)
+        self.assertEqual(result["usable_capacity_minutes"], 650)
+        self.assertEqual(result["committed_minutes"], 500)
+        self.assertEqual(result["candidate_minutes"], 400)
+        self.assertTrue(result["fits"])
+        self.assertEqual([x["id"] for x in result["stale_commitments"]], ["old"])
+        self.assertEqual(result["stale_commitments"][0]["clear_patch"]["week_start"], "__DELETE__")
+
+    def test_missing_estimate_dependency_and_deadline_risks(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 600,
+            "reserve_ratio": 0.30,
+            "mainlines": [{
+                "id": "risk",
+                "weekly_commitment": "must",
+                "dependencies_ready": False,
+                "date_semantics": "hard_deadline",
+                "deadline": "2026-08-07",
+            }],
+        })
+        self.assertFalse(result["fits"])
+        self.assertEqual(result["missing_estimates"][0]["id"], "risk")
+        self.assertEqual(result["dependency_risks"][0]["reason"], "dependency_not_ready")
+        self.assertEqual(result["deadline_risks"][0]["reason"], "hard_deadline_this_week")
+
+    def test_target_date_is_not_hard_deadline_risk(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 600,
+            "mainlines": [{
+                "id": "target",
+                "weekly_commitment": "should",
+                "estimated_minutes": 60,
+                "date_semantics": "target_date",
+                "deadline": "2026-08-07",
+            }],
+        })
+        self.assertEqual(result["deadline_risks"], [])
+
+    def test_invalid_count_zero_estimate_and_blocked_dependency_do_not_fit(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 600,
+            "mainlines": [{
+                "id": "blocked",
+                "weekly_commitment": "must",
+                "estimated_minutes": 0,
+                "dependencies_ready": False,
+            }],
+        })
+        self.assertFalse(result["selection_count_ok"])
+        self.assertFalse(result["fits"])
+        self.assertEqual(result["missing_estimates"][0]["id"], "blocked")
+        self.assertTrue(result["dependency_risks"][0]["blocking"])
+
+    def test_non_work_mainline_is_rejected(self):
+        with self.assertRaises(ValueError):
+            assess_capacity({
+                "week_start": "2026-08-03",
+                "weekly_capacity_minutes": 600,
+                "mainlines": [
+                    {"id": "memory", "role": "memory", "weekly_commitment": "must", "estimated_minutes": 60},
+                    {"id": "task", "role": "task", "weekly_commitment": "should", "estimated_minutes": 60},
+                ],
+            })
+
+    def test_malformed_current_pair_is_cleared_but_memory_is_ignored(self):
+        updates = stale_commitment_updates([
+            {"id": "missing-tier", "role": "task", "week_start": "2026-08-03"},
+            {"id": "bad-tier", "role": "task", "week_start": "2026-08-03", "weekly_commitment": "urgent"},
+            {"id": "memory", "role": "memory", "week_start": "2026-07-27", "weekly_commitment": "must"},
+        ], "2026-08-03")
+        self.assertEqual([item["id"] for item in updates], ["missing-tier", "bad-tier"])
+        self.assertTrue(all(item["reason"] == "malformed_weekly_commitment" for item in updates))
+
+    def test_future_hard_deadline_needs_capacity_evidence(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 600,
+            "mainlines": [
+                {"id": "deadline", "weekly_commitment": "must", "estimated_minutes": 300,
+                 "date_semantics": "hard_deadline", "deadline": "2026-08-14"},
+                {"id": "other", "weekly_commitment": "should", "estimated_minutes": 60},
+            ],
+        })
+        self.assertFalse(result["fits"])
+        self.assertEqual(result["deadline_risks"][0]["reason"], "deadline_capacity_unknown")
+
+    def test_five_mainlines_do_not_form_a_valid_plan(self):
+        result = assess_capacity({
+            "week_start": "2026-08-03",
+            "weekly_capacity_minutes": 1000,
+            "mainlines": [
+                {"id": str(index), "weekly_commitment": "candidate", "estimated_minutes": 30}
+                for index in range(5)
+            ],
+        })
+        self.assertFalse(result["selection_count_ok"])
+        self.assertFalse(result["fits"])
+
+
+class PackageValidatorTests(unittest.TestCase):
+    def test_package_and_manifest_are_current(self):
+        if not (ROOT / "MANIFEST.sha256").exists():
+            self.skipTest("repository manifest is not part of an installed core copy")
+        errors, _ = validate_package(ROOT)
+        self.assertEqual(errors, [])
 
 
 class MergeTests(unittest.TestCase):

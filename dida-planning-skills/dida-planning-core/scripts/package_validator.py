@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -21,6 +22,50 @@ def frontmatter(text: str) -> dict[str, str]:
         if ":" in line:
             k, v = line.split(":", 1); out[k.strip()] = v.strip()
     return out
+
+
+def _manifest_files(root: Path) -> dict[str, Path]:
+    files: dict[str, Path] = {}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root).as_posix()
+        parts = path.relative_to(root).parts
+        if rel == "MANIFEST.sha256" or ".git" in parts or "__pycache__" in parts or path.suffix == ".pyc":
+            continue
+        if rel.startswith("dida-planning-core/state/") and rel != "dida-planning-core/state/.gitkeep":
+            continue
+        files[rel] = path
+    return files
+
+
+def validate_manifest(root: Path) -> list[str]:
+    manifest = root / "MANIFEST.sha256"
+    if not manifest.exists():
+        return ["missing MANIFEST.sha256"]
+    errors: list[str] = []
+    entries: dict[str, str] = {}
+    for line_no, line in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 1):
+        match = re.fullmatch(r"([0-9a-fA-F]{64})\s+\./(.+)", line)
+        if not match:
+            errors.append(f"MANIFEST.sha256:{line_no}: malformed entry")
+            continue
+        digest, rel = match.group(1).lower(), match.group(2).replace("\\", "/")
+        if rel in entries:
+            errors.append(f"MANIFEST.sha256:{line_no}: duplicate {rel}")
+            continue
+        entries[rel] = digest
+
+    files = _manifest_files(root)
+    for rel in sorted(set(files) - set(entries)):
+        errors.append(f"MANIFEST.sha256: missing entry {rel}")
+    for rel in sorted(set(entries) - set(files)):
+        errors.append(f"MANIFEST.sha256: missing file {rel}")
+    for rel in sorted(set(entries) & set(files)):
+        actual = hashlib.sha256(files[rel].read_bytes()).hexdigest()
+        if actual != entries[rel]:
+            errors.append(f"MANIFEST.sha256: hash mismatch {rel}")
+    return errors
 
 
 def validate(root: Path) -> tuple[list[str], list[str]]:
@@ -50,6 +95,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         for name in sorted(missing): errors.append(f"missing memory category asset {name}")
     for doc in ["README.md", "REVIEW_REPORT.md", "SUBAGENT_REVIEW_PROMPT.md"]:
         if not (root / doc).exists(): errors.append(f"missing root document {doc}")
+    errors.extend(validate_manifest(root))
 
     scripts = root / "dida-planning-core" / "scripts"
     for py in scripts.rglob("*.py"):
