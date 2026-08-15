@@ -1,3 +1,5 @@
 MatchField,MatchValue,DisplayPackage,MountType,PinsPerPart,FixedPinsPerPart,Include,Notes
 Footprint,R0805,0805,SMD,2,0,yes,
+Footprint,CAP-SMD_BD4.0-L4.3-W4.3,贴片铝电解电容,SMD,2,0,yes,
+Footprint,CAP-TH_BD5.0-P2.00-D0.5-FD-A,直插铝电解电容 P2.00mm,THT,2,0,yes,
 Model,DSUB-M-44H,DB44公头,THT,44,2,yes,含固定脚
