@@ -46,21 +46,17 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | [gbt7714-2025-citation-generator](gbt7714-2025-citation-generator/SKILL.md) | 从 DOI、URL、正式出版页面、题名信息或论文 PDF 中提取并核实元数据，按 GB/T 7714—2025 生成参考文献。 |
 | [gbt7714-2025-citation-auditor](gbt7714-2025-citation-auditor/SKILL.md) | 检查和修订现有参考文献是否符合 GB/T 7714—2025，并通过正式网页或论文 PDF 核验关键元数据。 |
 
-### Text De-AI, Polish & Academic Humanizer
+### Text Polish & Humanizer
 
 | Skill | Description |
 |-------|-------------|
 | [humanizer](humanizer/SKILL.md) | English text humanizer based on Wikipedia AI Cleanup patterns to remove AI-generated tropes and enhance natural voice. |
-| [humanizer-zh](humanizer-zh/SKILL.md) | 中文去 AI 感写作优化工具，基于 Wikipedia AI Cleanup 与 Stop-Slop 指南，重塑自然中文表达。 |
-| [humanizer-zh-academic](humanizer-zh-academic/SKILL.md) | 中文学术论文与学术文本去 AI 痕迹与润色规范，提升学术严谨度与表达自然度。 |
-| [paper-humanizer](paper-humanizer/SKILL.md) | 中英文学术论文去 AI 痕迹工具，支持保留公式、引用标记 [1] 与严格事实性保护。 |
 
 ### Interactive Questioning & Thinking Stress-Test
 
 | Skill | Description |
 |-------|-------------|
-| [grilling](grilling/SKILL.md) | 对计划、决定或想法进行持续深度压力测试，逐题追问并给出建议答案，直到达成共识。 |
-| [grill-me](grill-me/SKILL.md) | 以连续追问（/grilling 会话）打磨计划或设计。 |
+| [grill-me](grill-me/SKILL.md) | 对计划、决定或想法进行持续深度压力测试，逐题追问并给出建议答案，直到达成共识。 |
 
 ### Software Engineering & Workflow Orchestration
 
@@ -92,12 +88,9 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 | 技能名称 | 原创/衍生来源 | 原作者 / 维护者 | 原始开源仓库 / 链接 | 许可证 (License) |
 |---|---|---|---|---|
-| **grill-me** / **grilling** | 衍生 / 适配 | **Matt Pocock** | [mattpocock/skills](https://github.com/mattpocock/skills) | **MIT License** |
+| **grill-me** | 社区引用 | **Matt Pocock** | [mattpocock/skills](https://github.com/mattpocock/skills) | **MIT License** |
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | **MIT License** |
-| **humanizer** | 衍生 / 适配 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
-| **humanizer-zh** | 衍生 / 适配 | **op7418** | [op7418/Humanizer-zh](https://github.com/op7418/Humanizer-zh) | **MIT License** |
-| **humanizer-zh-academic** | 衍生 / 适配 | **redbaronyyyyy-eng** | [redbaronyyyyy-eng/humanizer-zh-academic](https://github.com/redbaronyyyyy-eng/humanizer-zh-academic) | **MIT License** |
-| **paper-humanizer** | 衍生 / 适配 | **crabin** | [crabin/paper-humanizer-skill](https://github.com/crabin/paper-humanizer-skill) | Attribution / All rights reserved |
+| **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
 
 ---
 
