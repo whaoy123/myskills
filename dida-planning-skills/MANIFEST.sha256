@@ -5,8 +5,9 @@ d90ce900bc0200db215d131bf6fc9eeacdcf1469251bba7a3d7bbd87dec5af0e  ./CHANGELOG.md
 8a6eff4a076d3030c1e5fa9af1264abc8f33df43ef3b9e8da66a1542504d8ba1  ./README.md
 d46378ef555aed85e6436dcef0b27f1d5a7e5ded009f3b92d72deddb62417564  ./REVIEW_REPORT.md
 40bded091b6dc45d93781db818435a29b2e43db42c206584a2ef41a7b32a1b31  ./SUBAGENT_REVIEW_PROMPT.md
-e480d26d4ad30e772789a540ad0e82a6fee8d4a883539e3483f4115939260e3b  ./dida-cli/SKILL.md
-f06555ead5b30dbb4234874792e00571a6f6f3f5e2b1cdec441f8b3f139aa6f4  ./dida-cli/agents/openai.yaml
+cc79ceadf474b9620aa61865b5dcce54498243d5ff2baf332008a1fda6a442c7  ./dida-cli/SKILL.md
+5dfbb8928e84922825ff33b42c2b9cdca1ccdb023993bffda127b84a1b798c5b  ./dida-cli/agents/openai.yaml
+4d6aa3ba92e7b16e13322343dfebfba3b87d9f87192e63384c224e0a18760a88  ./dida-cli/scripts/dida_batch.py
 16a55ce5fd7d98c138758a0ed8ad4e1b1d6d6f58d9e6b778c68e38150b6302d0  ./dida-cli/references/commands.md
 bbb25e22013115d1f1fe70b93a0ddc4a310bfa266700159cc934e398d73a13ae  ./dida-cli/references/planner-integration.md
 0b6331b33992838fbd1fb24d2d306b9a7c7c722635139e9d012071b96b5a6497  ./dida-cli/references/workflows.md
