@@ -50,7 +50,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 | Skill | Description |
 |-------|-------------|
-| [humanizer](humanizer/SKILL.md) | English text humanizer based on Wikipedia AI Cleanup patterns to remove AI-generated tropes and enhance natural voice. |
+| [humanizer](humanizer/SKILL.md) | Final writing layer for concise, direct, natural responses. Removes common AI-writing patterns and unnecessary defensive/caveat-heavy prose while preserving necessary precision. |
 
 ### Interactive Questioning & Thinking Stress-Test
 
@@ -91,6 +91,13 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | **grill-me** | 社区引用 | **Matt Pocock** | [mattpocock/skills](https://github.com/mattpocock/skills) | **MIT License** |
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | **MIT License** |
 | **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
+| **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | **MIT License** |
+
+### 新增来源的使用 / 引用要求
+
+- **anti-defensive-writing** 已融合进 `humanizer`。普通调用 `humanizer` 生成、润色或压缩文本时，MIT License **不要求**在生成结果中引用 Kiterlin。
+- 如果复制、修改、合并、发布、分发、再许可或以其他方式再分发 `anti-defensive-writing` 的源码、文档或其 substantial portions，需要保留原作者版权声明和 MIT 许可声明。
+- 对应第三方许可文本保存在 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
 
 ---
 
