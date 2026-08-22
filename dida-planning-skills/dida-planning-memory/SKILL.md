@@ -15,7 +15,7 @@ Before saving, choose the true owner:
 - Current task/project context, progress, completion criteria, or decisions → owning task body/comment.
 - Estimate samples and timing evidence → `$dida-task-estimator` / `$dida-task-progress`.
 - Cross-project rule, tool/environment fact, reusable workflow, or durable agreement → this skill.
-- Project-specific durable rule → a `role: memory` child under the exact project parent.
+- Project-specific durable rule → a `role: memory` child under `系统配置`'s `长期记忆｜项目规则` (with `memory_scope: project` and `applies_to: PROJECT_ID`). Never create memory tasks inside business/project task trees.
 
 Never duplicate one fact across owners merely for convenience.
 
@@ -48,7 +48,7 @@ Each memory is a separate child task/NOTE with:
 - source/confidence/scope fields in the Planner block;
 - change history in comments.
 
-Project-specific memory is created under the exact project parent, not copied into a global category.
+All memories (including project-specific rules) must be stored exclusively under the memory category parents in the `系统配置` list. Never create memory tasks inside project/action task trees, keeping project lists 100% pure action items.
 
 ## Initialize
 
