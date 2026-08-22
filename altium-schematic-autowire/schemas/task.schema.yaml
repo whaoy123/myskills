@@ -1,0 +1,17 @@
+required:
+  - project_name
+  - eda
+  - eda_version
+  - mode
+  - source_document
+  - output_directory
+  - units
+  - snap_grid
+  - backup_required
+mode_enum: [label, direct, template, netlist_only, modify_existing]
+units_enum: [mil, mm]
+defaults:
+  wire_stub_length: 200
+  backup_required: true
+  strict_pin_check: true
+  allow_unresolved_library: false

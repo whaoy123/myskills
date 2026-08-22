@@ -1,69 +1,38 @@
 ---
 name: dida-task-breakdown
-description: Decompose a Dida parent task into phases, executable child tasks, completion criteria, and enforceable dependencies. Use when the user asks to 拆任务, 细化项目, 建立子任务, sequence work, or identify prerequisites. Do not choose daily time blocks or perform a full estimate review unless needed for decomposition.
+description: Decompose a Dida parent task into clean sub-tasks, deliverables, completion criteria (DoD), and half-hour estimate tags (#0.5h, #1.0h...). Use when the user asks to 拆任务, 细化项目, 建立子任务, 任务划分, 整理任务池, or identify prerequisites. Do not generate daily clock execution blocks.
 ---
 
-# Dida task breakdown
+# Dida Task Breakdown
 
-Turn an oversized task into a usable four-level hierarchy while keeping every durable action in Dida.
+Turn complex projects and milestones into structured, atomic sub-tasks with clear completion criteria (DoD) and estimated duration tags.
 
-## Required reads
+## Core Architectural Mapping (四大主干体系)
 
-1. Resolve and read the exact parent through `$dida-cli`.
-2. Read its existing children to prevent duplicates. Treat `role: memory` children as project context only; never count or rewrite them as work breakdown items.
-3. Read `系统协议｜标签与任务正文`, `系统协议｜依赖关系`, and only the exact parent project memories that constrain decomposition.
-4. Use the shared dependency checker before writing dependency edges.
+All research and technical tasks belong to one of the following branches:
 
-## Hierarchy
+1. **🚀 1553B 课题** (清单: `研究生`)
+   - `开题报告`（去重精炼、格式校对、PPT对齐、导师/师兄沟通）
+   - `上位机与通信`（代码研读、功能改造、以太网控制实验、RPC实验）
+   - `1553B IP核与收发`（BM/RT/BC 模块、协议收发工程）
+2. **⚡ AVRplus 复刻** (清单: `研究生`)
+   - `调理隔离板`（原理图接口设计、PCB布局布线、爬电间隙核查、电阻选型、DIAG测试点）
+   - `Field 采样与励磁`（自研内部 FIELD_GND 差分采样）
+3. **📚 Verilog 写法学习** (清单: `研究生`)
+   - `common_cells`（仓库结构、基础数据通路、仲裁/流路由、CDC/复位、验证对应）
+   - `pulp_axi`（模块化总线设计）
+   - `taxi`（数据流与 Cocotb 验证）
+4. **💼 数字IC 找工作** (清单: `工作`)
+   - `UART/低速总线 IP核`（参数化、RTL与验证）
+   - `PCIe`（分层与数据流、DLP RTL与测试、规范标注）
+   - `集创赛与 CPU 体系`（Ibex 分层与验证、TileLink/CHI、RVWMO、Cache 重写）
+   - `前端交付流程`（Lint、CDC、综合、STA、PPA）
+5. **📦 485 相关工程与TB**
+   - 独立归档于【研究生，任务归档】清单，不与主线混杂。
 
-Use at most:
+## Breakdown Guidelines
 
-```text
-project → phase/deliverable → executable task → execution block
-```
-
-- Do not create a separate Dida list for a project.
-- Create all useful confirmed steps directly as child tasks; there is no candidate status.
-- Prefer executable children with a visible deliverable and completion criterion.
-- A child should normally fit one focused session or one coherent multi-session unit.
-
-## Weekly execution grouping
-
-- A `project` is a long-lived owner, never a weekly execution item. Preserve its hard due date, but never give it a weekly execution window. If native Dida cannot clear the start date, set it to the same local date as the hard due date rather than an earlier week.
-- For work selected in a week, create or reuse one child `phase` such as `第1周｜...`, with that week as its `execution_window`.
-- The weekly phase contains every selected executable child for that week: one, several, or none after replanning. Never infer a fixed child count from examples.
-- Reparent only selected `task` or `block` records. Future or sibling work stays under the project with its own dates. Do not create duplicate weekly phases for the same project and week.
-
-## Execution blocks
-
-- If a task can finish in one sitting and does not itself own a hard deadline, the task itself becomes the time block later.
-- If the owning task uses its Dida date as a hard deadline, create a child execution task/block even for one sitting; never overwrite the deadline with an execution window.
-- Otherwise create block children only when the work must be advanced across multiple sessions.
-- Completing a block increases the owning task's progress; it never automatically completes the owner.
-
-## Dependencies
-
-Support finish-to-start, start-to-start, not-before, external wait, all-of, any-of, soft, and hard dependencies.
-
-- Hard unsatisfied dependencies prevent scheduling unless the user explicitly overrides.
-- Soft dependencies allow scheduling with a warning.
-- Detect self-dependencies and cycles before writing.
-- Store task IDs, not titles, in the Planner block.
-- Use the single state tag `状态/等待` when work is currently unable to proceed.
-
-## Write sequence
-
-1. Present a compact hierarchy when decomposition contains material judgment.
-2. Create/update phases before their children.
-3. Create children with parent IDs and minimal Planner blocks.
-4. Patch dependencies after all required IDs exist.
-5. Add a `[planner-event:v1]` decomposition comment to the parent.
-6. Read back the complete child set and verify no duplicate or orphan exists.
-
-## Completion rule
-
-A parent with unfinished required children cannot be completed. If only optional children remain, ask before completing. This system has no “abandoned” state; unnecessary tasks may be deleted.
-
-## References
-
-Read `references/hierarchy-and-dependencies.md` for decomposition and dependency details.
+1. **Atomic & Executable**: Each leaf task should have a clear deliverable and concise `## 完成标准 (DoD)`.
+2. **Tagging with Estimation**: Apply `#0.5h`, `#1.0h`, `#1.5h`, `#2.0h`, `#2.5h`, `#3.0h` tags based on task complexity (rounded up to 0.5h).
+3. **No Clock Blocks**: Do not generate rigid time-of-day execution blocks (e.g. `10:30-11:15`); let the user freely select tasks each day.
+4. **Checklists**: Use checklist items for fine-grained steps under a task.

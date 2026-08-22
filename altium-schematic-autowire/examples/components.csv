@@ -1,0 +1,4 @@
+Ref,LibraryRef,SourceLibrary,PartID,X,Y,Rotation,Mirror,Value,Footprint,Channel,Place
+J1,CONN_01X03,MyConnector.SchLib,1,1000,7000,0,false,INPUT,TerminalBlock_1x03,A,true
+R1,R,MyPassive.SchLib,1,2400,7000,0,false,1M,0603,A,true
+U1,AMC3330,MyIC.SchLib,1,3800,7000,0,false,AMC3330,SOIC-16,A,true

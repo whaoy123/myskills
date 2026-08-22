@@ -1,0 +1,11 @@
+Column,Required,Type,Description
+NetName,yes,string,Electrical net name
+Ref,yes,string,Component designator
+Pin,conditional,string,Pin number for pin endpoint
+PinName,no,string,Expected pin name for validation
+EndpointType,yes,enum,pin port power_port sheet_entry harness_entry no_connect
+Direction,no,enum,input output bidirectional passive power
+WireMode,no,enum,label direct bus harness none
+LabelSide,no,enum,left right up down auto
+Channel,no,string,Logical channel
+Comment,no,string,Engineering note
