@@ -7,7 +7,7 @@ description: Decompose a Dida parent task into clean sub-tasks, deliverables, co
 
 Turn complex projects and milestones into structured, atomic sub-tasks with clear completion criteria (DoD) and estimated duration tags.
 
-## Core Architectural Mapping (四大主干体系)
+## 1. Core Architectural Mapping (四大主干体系)
 
 All research and technical tasks belong to one of the following branches:
 
@@ -30,7 +30,27 @@ All research and technical tasks belong to one of the following branches:
 5. **📦 485 相关工程与TB**
    - 独立归档于【研究生，任务归档】清单，不与主线混杂。
 
-## Breakdown Guidelines
+## 2. 统一子任务命名规范（父任务简称｜子任务具体名称）
+
+所有子任务（拥有 parentId 的任务）必须严格统一采用 **`父任务简称｜子任务具体名称`** 格式：
+
+- **父任务简称约定**：
+  - `1553B 课题` ➔ `1553B`
+  - `开题报告` ➔ `开题报告`（例：`开题报告｜全文去重精炼`）
+  - `上位机与通信` ➔ `上位机`（例：`上位机｜看懂现有上位机代码`）
+  - `学习并评估RPC...` ➔ `RPC`（例：`RPC｜跑通最小调用示例`）
+  - `调理隔离板` ➔ `调理隔离板`（例：`调理隔离板｜完成PCB设计`）
+  - `Field 采样与励磁` ➔ `Field采样`（例：`Field采样｜差分采样验证`）
+  - `common_cells` ➔ `common_cells`（例：`common_cells｜CDC 与复位 RTL 写法`）
+  - `PCIe` ➔ `PCIe`（例：`PCIe｜梳理分层与数据流`）
+  - `学习 FPGA` ➔ `FPGA`（例：`FPGA｜数字IC 设计的 PPA 优化`）
+  - `集创赛与 CPU 体系` ➔ `CPU体系`（例：`CPU体系｜研读 Ibex RTL 分层与验证体系`）
+  - `前端交付流程` ➔ `前端交付`（例：`前端交付｜Lint、CDC、综合、STA、PPA 这些前端交付环节`）
+  - `485相关工程与TB` ➔ `485`（例：`485｜完善现有 485 TB`）
+  - `嵌入式Linux` ➔ `Linux`（例：`Linux｜嵌入式驱动`）
+  - `UVM与SV` ➔ `UVM`（例：`UVM｜第三课`）
+
+## 3. Breakdown Guidelines
 
 1. **Atomic & Executable**: Each leaf task should have a clear deliverable and concise `## 完成标准 (DoD)`.
 2. **Tagging with Estimation**: Apply `#0.5h`, `#1.0h`, `#1.5h`, `#2.0h`, `#2.5h`, `#3.0h` tags based on task complexity (rounded up to 0.5h).
