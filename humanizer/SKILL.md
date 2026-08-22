@@ -345,6 +345,7 @@ Say the point directly.
 - Avoid stacked headings and one-line sections.
 - Do not bold every key noun.
 - Match the user's language.
+- When a short concluding takeaway is useful, label it `总结：`. Avoid labels such as `一句话记：`.
 
 ## Technical-answer mode
 
