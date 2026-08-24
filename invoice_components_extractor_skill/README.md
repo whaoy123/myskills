@@ -9,7 +9,7 @@
 - CSV 采购/发票明细
 - include / exclude / review 三态判定
 - 来源文件、页/Sheet/行、原始文本追溯
-- 安全数量合并
+- 默认单来源内部安全合并，避免采购表 + 发票重复计数
 - Excel / CSV / JSON 输出
 - 可选 Markdown 输出
 
@@ -40,6 +40,14 @@ python scripts/extract_soldering_components.py \
 ```bash
 --markdown /path/to/components.md
 ```
+
+不同输入文件已经确认代表独立采购、不会重复计数时，才允许：
+
+```bash
+--merge-across-sources
+```
+
+默认不会把 `采购表.xlsx` 和 `发票.pdf` 中的同型号数量直接相加。
 
 ## 输出
 
