@@ -1,6 +1,6 @@
 interface:
   display_name: "滴答每日排程"
-  short_description: "按容量、依赖和移动权限写入每日时间块"
-  default_prompt: "使用 $dida-daily-planner 读取滴答并安排今天的实际时间块。"
+  short_description: "按容量、依赖和移动权限生成并按需写入每日时间块"
+  default_prompt: "使用 $dida-daily-planner 读取当前滴答状态并安排今天的实际时间块；只有在用户要求应用时写回。"
 policy:
   allow_implicit_invocation: true
