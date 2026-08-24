@@ -45,11 +45,12 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | [gbt7714-2025-citation-generator](gbt7714-2025-citation-generator/SKILL.md) | 从 DOI、URL、正式出版页面、题名信息或论文 PDF 中提取并核实元数据，按 GB/T 7714—2025 生成参考文献。 |
 | [gbt7714-2025-citation-auditor](gbt7714-2025-citation-auditor/SKILL.md) | 检查和修订现有参考文献是否符合 GB/T 7714—2025，并通过正式网页或论文 PDF 核验关键元数据。 |
 
-### Text Polish & Humanizer
+### Text Polish & Finalization
 
 | Skill | Description |
 |-------|-------------|
 | [humanizer](humanizer/SKILL.md) | Final writing layer for concise, direct, natural responses. Removes common AI-writing patterns and unnecessary defensive/caveat-heavy prose while preserving necessary precision. |
+| [no-negative-echo](no-negative-echo/SKILL.md) | Final-deliverable hygiene: regenerate user-facing surfaces from the accepted, verified final state so rejected session-only alternatives do not leak into titles, filenames, comments, commits, PRs, release notes, or handoffs, while preserving required change, safety, compatibility, and audit facts. |
 
 ### Interactive Questioning & Thinking Stress-Test
 
@@ -91,12 +92,16 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | **MIT License** |
 | **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
 | **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | **MIT License** |
+| **no-negative-echo** | 社区引用 / 本仓库内再分发 | **LB623** | [LB623/no-negative-echo](https://github.com/LB623/no-negative-echo) | **MIT License** |
 
 ### 新增来源的使用 / 引用要求
 
 - **anti-defensive-writing** 已融合进 `humanizer`。普通调用 `humanizer` 生成、润色或压缩文本时，MIT License **不要求**在生成结果中引用 Kiterlin。
 - 如果复制、修改、合并、发布、分发、再许可或以其他方式再分发 `anti-defensive-writing` 的源码、文档或其 substantial portions，需要保留原作者版权声明和 MIT 许可声明。
 - 对应第三方许可文本保存在 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
+- **no-negative-echo** 作为独立 Skill 收录。普通调用该 Skill 生成标题、注释、commit、PR、交付说明等内容时，MIT License **不要求**在生成结果里额外署名 LB623。
+- 如果复制、修改、合并、发布、分发或再许可 `no-negative-echo` 的 Skill、脚本、文档或其 substantial portions，需要保留 `Copyright (c) 2026 LB623` 和 MIT 许可声明。
+- `no-negative-echo` 的完整许可文本和来源说明分别保存在 [`no-negative-echo/LICENSE`](no-negative-echo/LICENSE) 与 [`no-negative-echo/THIRD_PARTY_NOTICES.md`](no-negative-echo/THIRD_PARTY_NOTICES.md)。
 
 ---
 
