@@ -1,28 +1,53 @@
 # Daily planning rules
 
-## Default availability
+This reference contains **method rules only**. Concrete work hours, rest windows, preferred block length, energy pattern, protected activities, and weekly availability belong to the runtime Dida profile.
 
-These defaults come from the migrated preference profile and may be updated through `dida-planning-profile`:
+## Availability
 
-- Workdays: 09:00/10:00–11:30, 14:00–17:00, 18:00/19:00–21:00.
-- Morning check-in: 08:45.
-- Lunch: about 11:30–12:30; nap/rest normally until 14:00.
-- Saturday: mainly morning, no later than 15:00.
-- Sunday: no planned work by default.
-- Sleep protection: about 01:00–08:00.
+Read `规划偏好｜作息与容量` for:
+
+- normal available work windows;
+- recurring unavailable/rest windows;
+- preferred focus-block length and break range;
+- continuous cognitive-work limit;
+- daily important-task cap when configured;
+- reserve/buffer preference;
+- deadline lead-time preference;
+- stable energy pattern.
+
+Do not use repository template values as current user facts after the runtime NOTE exists.
+
+If a field is missing:
+
+- use explicit availability from the current conversation first;
+- otherwise infer only what is directly visible from the day's fixed commitments;
+- use a conservative one-day assumption when planning can still proceed;
+- do not silently persist that assumption as a stable profile preference.
+
+A one-day exception such as extended working hours belongs to the current planning interaction or affected task comment, not the stable profile unless the user explicitly promotes it.
 
 ## Work style
 
-- Afternoon is usually the strongest energy period.
-- Prefer 60-minute focus blocks with 10–20 minute breaks.
-- Continuous cognitive work limit: roughly 4–5 hours.
-- Keep substantial buffer and target completion 2–5 days before true deadlines.
-- Low-energy periods favor routine or AI-parallel work.
+- Match high-cognitive work to the user's configured high-energy windows when available.
+- Prefer fewer coherent blocks over excessive context switching.
+- Keep normal breaks and transition cost; do not fill all free minutes merely because capacity exists.
+- Low-confidence estimates require more reserve than high-confidence estimates.
+- AI-parallel elapsed time does not consume calendar occupancy when the user can work on something else simultaneously.
 
-## Fitness
+## Mobility
 
-Fitness is a Dida time block, defaults to protected, and is preferably adjacent to dinner because the locations are close. It may move within the day but is not automatically shortened.
+Read `规划偏好｜日程移动权限`.
+
+- `fixed`: do not move unless the user explicitly changes it.
+- `protected`: move only within its configured permission; do not silently delete or shorten.
+- `movable`: may be rearranged within planning constraints.
+
+Do not hard-code a specific activity such as fitness into one mobility class; the runtime profile owns that choice.
 
 ## Effective execution deadline
 
-For hard deadlines, work backward over actual capacity. Sunday and unavailable holiday days do not count unless the user confirms availability. When the last viable execution day is near, schedule concrete blocks rather than leaving the task only as a candidate.
+For a hard deadline, work backward over **real future capacity** and remaining estimated occupancy.
+
+The effective execution deadline is the last realistic window in which the work can still finish with required validation and configured reserve. Non-working days or unavailable periods count only when the current runtime profile says they are usable.
+
+When the last viable execution window is close, prefer concrete executable blocks over leaving the task only in a candidate pool.
