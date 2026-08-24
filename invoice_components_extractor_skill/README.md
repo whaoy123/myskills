@@ -1,16 +1,70 @@
 # invoice_components_extractor_skill
 
-从采购发票 PDF 自动化提取纯焊接元器件清单（格式：类别 + 型号 + 封装 + 数量）。
+从采购资料中提取明确的可焊接电子元器件，并把无法可靠判断的行单独放进待复核清单。
 
-## 特性
-- 自动过滤手套劳保、PCB裸板、塑料外壳、运费及折扣
-- 纯净提取电阻、电容、芯片、传感器、端子与连接器
-- 自动识别封装形式（0805贴片、SOP-8、AXIAL插件、D-SUB弯插等）
-- 导出格式美观的 Excel 表格与 Markdown 表格
+支持：
 
-## 使用方法
+- PDF 电子发票（逐页文本提取）
+- XLSX 采购/发票明细
+- CSV 采购/发票明细
+- include / exclude / review 三态判定
+- 来源文件、页/Sheet/行、原始文本追溯
+- 安全数量合并
+- Excel / CSV / JSON 输出
+- 可选 Markdown 输出
+
+## 安装
+
+```bash
+pip install pdfplumber openpyxl
+```
+
+## 使用
+
 ```bash
 python scripts/extract_soldering_components.py \
-  --invoices-dir "/path/to/invoices" \
-  --output-xlsx "焊接元器件清单.xlsx"
+  --input /path/to/invoices \
+  --output-dir /path/to/output
+```
+
+兼容旧接口：
+
+```bash
+python scripts/extract_soldering_components.py \
+  --invoices-dir /path/to/invoices \
+  --output-xlsx /path/to/components.xlsx
+```
+
+可选 Markdown：
+
+```bash
+--markdown /path/to/components.md
+```
+
+## 输出
+
+```text
+components_output/
+├── components.xlsx
+├── components.csv
+├── review.csv
+├── normalized_records.csv
+└── validation_report.json
+```
+
+`components.xlsx` 包含：
+
+- `元器件清单`
+- `待复核`
+
+## 重要边界
+
+这个 Skill 只回答“采购证据里出现了什么”。
+
+它不能仅凭发票判断 PCB 实际应该焊什么，也不能自行确定缺货替换关系。正式焊接清单仍应结合 BOM、网表、原理图、采购表和发票，由 `pcb_soldering_table_skill` 完成。
+
+## 测试
+
+```bash
+python -m unittest discover -s tests -v
 ```
