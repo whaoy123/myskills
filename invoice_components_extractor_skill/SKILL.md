@@ -1,65 +1,378 @@
 ---
 name: invoice_components_extractor_skill
-description: 从多张采购发票 PDF/Excel 中精准过滤劳保手套、工具、PCB裸板、外壳与辅材等非焊接物料，纯净提取待焊接的电子元器件清单（格式：类别 + 型号/规格 + 封装/安装形式 + 参数 + 数量），并导出标准 Excel 与 Markdown 表格。
+description: 从采购发票或采购明细 PDF/XLSX/CSV 中提取“采购证据里出现的可焊接电子元器件”，保留来源证据并将每条记录判为 include/exclude/review。用于采购清单整理、焊接物料采购证据提取和下游焊接清单输入准备。不得仅凭发票判断 PCB 实际需要焊什么；最终装配集合仍由 BOM/网表/原理图决定。
 ---
 
-# 采购发票纯焊接元器件提取 Skill
+# Invoice Components Extractor
 
-## 1. 技能定位与流程
+从采购资料里整理出：
 
-本 Skill 用于从批量采购发票（立创商城、博信发、嘉立创等 PDF 发票）中，**自动剔除**运费、包装费、折扣、劳保工具（如手套）、PCB裸板、塑料外壳等非焊接物料，**仅精准提取实际需要焊接上板/焊线的电子元器件**。
+> **明确买了哪些可焊接电子元器件，以及哪些行还需要人工复核。**
+
+这个 Skill 处理的是**采购证据**，不是 PCB 装配真值。
+
+## 职责边界
+
+本 Skill 负责：
+
+- 读取 PDF / XLSX / CSV 采购资料；
+- 将原始行规范化；
+- 区分元器件、费用/折扣、工具/机械件和无法判断项；
+- 对每条记录保留来源文件、页/Sheet/行、原始文本和判定依据；
+- 只对明确可安全合并的元器件汇总数量；
+- 生成清单、待复核项和校验报告；
+- 为 `pcb_soldering_table_skill` 提供采购侧证据。
+
+本 Skill 不负责：
+
+- 判断某个器件是否真的应该装到 PCB；
+- 用发票替代 BOM、网表或原理图；
+- 根据相似名字擅自建立 `原型号 → 替换型号` 映射；
+- 猜测缺失型号、封装或数量；
+- 因为某行“看起来不像器件”就静默丢弃不确定记录。
+
+下游正式焊接清单仍应使用：
 
 ```text
-批量采购发票 (PDF)
+网表 / BOM / 原理图
+        +
+采购表 / 发票采购证据
         ↓
-关键词过滤与元器件类型识别
-(剔除手套/PCB/外壳/运费/折扣)
-        ↓
-分类与封装规格提炼
-(电阻/电容/芯片/端子/连接器 + 封装形式)
-        ↓
-输出规范表格 (Markdown + .xlsx)
+pcb_soldering_table_skill
 ```
 
----
+## 输入
 
-## 2. 过滤与分类规则
+接受：
 
-### 2.1 排除物料（非焊接器件）
-- **劳保与工具**：绝缘手套、静电环、钳子、镊子、吸锡器等；
-- **印制板裸板**：PCB 线路板打样/批量板；
-- **机械与外壳**：塑料外壳、接头塑壳、螺丝螺母、铜柱；
-- **费用与折扣**：配送费、包装费、各类负数折扣行。
+- 单个 `.pdf`；
+- 单个 `.xlsx`；
+- 单个 `.csv`；
+- 包含上述文件的目录。
 
-### 2.2 保留元器件（焊接件）
-- **芯片 / 传感器**：IC、SOP/QFP 芯片、电流传感器、逻辑门等；
-- **电容**：贴片陶瓷电容（0402/0603/0805/1206）、电解电容等；
-- **电阻**：贴片电阻、合金采样电阻（2512）、插件电阻（AXIAL）等；
-- **接线端子**：螺钉式、栅栏式接线端子（直插）；
-- **连接器**：D-SUB 插座、弯针插板连接器、焊线式插头插座等。
+### PDF
 
----
+逐页读取文本，不再只读第一页。
 
-## 3. 目录结构
+适合已经能直接提取文字的电子发票。扫描件如果没有可提取文本，本 Skill 只记录 source warning，不应通过反复 OCR 猜数据。
+
+### XLSX / CSV
+
+结构化输入至少需要能识别：
+
+- 项目/商品名称；
+- 数量。
+
+可选：
+
+- 规格型号；
+- 单位。
+
+脚本支持常见中文表头别名，例如 `项目名称 / 商品名称 / 名称 / 品名`、`规格型号 / 型号 / 规格`。
+
+## 三态判定
+
+每条规范化记录必须进入且只进入一种状态：
 
 ```text
-invoice_components_extractor_skill/
-├── SKILL.md                          # 技能规范
-├── README.md                         # 说明文档
-├── scripts/
-│   └── extract_soldering_components.py # 核心提取与导出脚本
-├── examples/
-│   └── 焊接元器件清单-示例.xlsx        # 导出示例
-└── tests/
-    └── test_extract_components.py     # 单元测试
+include
+exclude
+review
 ```
 
----
+### `include`
 
-## 4. 快速使用
+有足够证据判断为实际可焊接电子元器件，例如：
+
+- 电阻、电容、电感；
+- IC、传感器、运放、隔离器；
+- 二极管、MOSFET；
+- 端子、连接器、排针；
+- 晶振、继电器、保险丝、电源模块等。
+
+### `exclude`
+
+有明确证据不是目标元器件，例如：
+
+- 运费、配送费、包装费、服务费；
+- 折扣、优惠、负数金额行；
+- 工具、劳保；
+- PCB 裸板；
+- 外壳、螺丝、铜柱、胶水等机械/辅材。
+
+### `review`
+
+当前证据不足，例如：
+
+- PDF 行结构解析失败；
+- 数量字段无法读取；
+- 名称过于宽泛，无法确定是否为焊接件；
+- 型号/规格信息不足而会影响后续合并；
+- 新供应商格式不符合已有解析规则。
+
+核心规则：
+
+> **不确定就进入 review，不静默排除。**
+
+`review` 不是脚本失败，而是明确的人机验收点。
+
+## Provenance
+
+每条标准化记录至少保存：
+
+```text
+source_file
+source_type
+source_page / source_sheet
+source_row
+raw_text
+name
+model
+qty
+unit
+decision
+reason
+```
+
+最终清单中的聚合行必须保留来源集合，例如：
+
+```text
+invoice-a.pdf:page 1 line 18；invoice-b.xlsx:sheet 明细 row 7
+```
+
+不能只输出一个无法回溯的总数量。
+
+## 分类与封装
+
+`include` 后再推断：
+
+```text
+category
+normalized_model
+package
+```
+
+封装只在文本有明确证据时写具体值，例如：
+
+```text
+0805 (SMD)
+SOP-8 (SMD)
+QFN-32 (SMD)
+间距 9.52 mm (THT)
+```
+
+证据不足就写：
+
+```text
+待确认
+```
+
+不要因为“电容通常是贴片”就自动写 0805。
+
+## 合并规则
+
+只有以下关键字段一致时才允许合并数量：
+
+```text
+category
+normalized_model
+package
+unit
+```
+
+无可靠型号时默认保守，不跨来源机械合并。
+
+例如：
+
+```text
+同型号 OPA197ID + 同封装 + 同单位
+→ 可以汇总数量
+```
+
+而：
+
+```text
+“贴片电容 1uF”
+“RVT1H1R0M0405”
+```
+
+没有确认映射时不得因为参数相似自动合并。
+
+## 固定 CLI
+
+脚本：
+
+```text
+scripts/extract_soldering_components.py
+```
+
+推荐：
 
 ```bash
 python scripts/extract_soldering_components.py \
-  --invoices-dir "发票PDF所在目录" \
-  --output-xlsx "焊接元器件清单.xlsx"
+  --input /path/to/invoices \
+  --output-dir /path/to/output
 ```
+
+兼容旧参数：
+
+```bash
+--invoices-dir
+--output-xlsx
+```
+
+可选 Markdown：
+
+```bash
+--markdown components.md
+```
+
+## 固定输出
+
+默认输出目录：
+
+```text
+components_output/
+├── components.xlsx
+├── components.csv
+├── review.csv
+├── normalized_records.csv
+└── validation_report.json
+```
+
+如果指定 `--markdown`，额外输出：
+
+```text
+components.md
+```
+
+### `components.xlsx`
+
+两个 Sheet：
+
+```text
+元器件清单
+待复核
+```
+
+元器件清单包含：
+
+| 字段 | 含义 |
+|---|---|
+| 类别 | 电阻、电容、连接器等 |
+| 型号 / 规格 | 规范化后型号 |
+| 封装 / 安装形式 | 有证据则具体，无则待确认 |
+| 原始品名 | 发票原始语义 |
+| 数量 | 安全聚合后的数量 |
+| 单位 | 原采购单位 |
+| 来源 | 文件 + 页/行/Sheet |
+| 判定依据 | 为什么被 include |
+
+### `review.csv`
+
+只放必须人工确认的行，不与正式 components 混在一起。
+
+### `normalized_records.csv`
+
+保存全部 include / exclude / review 标准化记录，用于审计和调试解析器。
+
+### `validation_report.json`
+
+至少记录：
+
+- 实际读取的文件；
+- source warning；
+- normalized / include / exclude / review 数量；
+- 聚合后 components 数量；
+- Excel 回读行数；
+- 输出路径。
+
+## 固定工作流程
+
+### Step 1 — Inspect sources
+
+先看输入文件类型和数量。
+
+如果有采购表这种结构化 XLSX/CSV，同时又有 PDF 发票：
+
+- 两者都可以提取；
+- 不要自动假设它们是两笔不同采购；
+- 如果后续需要计算“实际采购总量”，仍需结合订单/发票对应关系去重。
+
+本 Skill 的聚合只针对输入记录本身，不承担跨采购证据的订单去重语义。
+
+### Step 2 — Normalize
+
+把每一条候选采购行转成统一记录，并保留 provenance。
+
+解析失败必须进入 warning 或 review，不允许 `except: pass`。
+
+### Step 3 — Decide include/exclude/review
+
+先做排除，再做明确元器件识别，最后把剩余项放 review。
+
+规则可以扩展，但不能把某一个项目的特殊料号硬编码成所有项目的通用真理。
+
+### Step 4 — Infer category/model/package
+
+只对 include 项执行。
+
+任何推断都必须允许降级到 `待确认`。
+
+### Step 5 — Aggregate safely
+
+按合并规则汇总数量并保留全部来源。
+
+### Step 6 — Export
+
+生成 CSV / XLSX / JSON；可选 Markdown。
+
+### Step 7 — Read back
+
+重新打开生成的 `components.xlsx`，确认：
+
+- `元器件清单` 行数与聚合结果一致；
+- `待复核` 行数与 review 数一致；
+- 文件可正常打开。
+
+## Gate
+
+本 Skill 可以在存在 review 时正常完成，但必须明确报告 review 数量。
+
+只有以下情况属于 Blocking：
+
+- 没有找到任何支持的输入文件；
+- 输入文件无法读取且没有其它有效来源；
+- 输出 XLSX 无法回读；
+- 聚合后行数与 Excel 回读不一致；
+- 解析器出现异常但被静默吞掉。
+
+## 与焊接清单 Skill 的 Handoff
+
+给 `pcb_soldering_table_skill` 的是：
+
+```text
+采购证据：components / normalized records
+待确认采购项：review
+```
+
+下游仍必须自己根据 BOM / 网表 / 原理图确认：
+
+```text
+需要数量
+最终实际型号
+是否发生替换
+是否需要补购
+```
+
+总结：这个 Skill 回答“采购资料里有什么”；焊接清单回答“板子最终要焊什么”。
+
+## Tests
+
+运行：
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+测试至少覆盖三态判定、PDF 行解析、CSV/XLSX 输入、安全合并和 XLSX 回读。
