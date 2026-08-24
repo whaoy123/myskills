@@ -42,12 +42,17 @@ versions = {skill_version, readme_version, str(PLUGIN.get("version", ""))}
 if len(versions) != 1:
     raise SystemExit(f"Version mismatch: {sorted(versions)}")
 
-pattern_numbers = [
-    int(number)
-    for number in re.findall(r"(?m)^### ([0-9]+)\. ", SKILL)
-]
-if pattern_numbers != list(range(1, 34)):
-    raise SystemExit(f"Expected patterns 1-33, found {pattern_numbers}")
+required_sections = (
+    "## Default response mode: concise first",
+    "## Anti-defensive writing",
+    "## Common AI-writing patterns to remove",
+    "## Technical-answer mode",
+    "## Invocation modes",
+    "## Final pass",
+)
+missing_sections = [heading for heading in required_sections if heading not in SKILL]
+if missing_sections:
+    raise SystemExit(f"SKILL.md missing v3 sections: {missing_sections}")
 
 readme_numbers = {
     int(number) for number in re.findall(r"(?m)^\| ([0-9]+) \|", README)
