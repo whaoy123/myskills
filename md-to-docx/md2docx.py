@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Template-aware Markdown to DOCX converter.
 
-The script intentionally supports a focused Markdown subset used by engineering,
-course, and academic reports: headings, paragraphs, lists, pipe tables, fenced
-code, Mermaid placeholders/rendered images, normal Markdown images, captions,
-and numeric reference markers.
+Supported focus: engineering/course/academic Markdown with headings, paragraphs,
+lists, pipe tables, fenced code, images, rendered Mermaid diagrams, captions,
+and numeric bibliography references.
 """
 
 from __future__ import annotations
@@ -46,16 +45,17 @@ def set_paragraph_style(paragraph, doc, style_name: str) -> None:
 
 
 def load_document(template_path: Path | None):
-    """Open .docx/.dotx template or create a blank document."""
+    """Open a .docx/.dotx template, or return a blank document."""
     if template_path is None:
         return Document()
-    if template_path.suffix.lower() == ".docx":
+    suffix = template_path.suffix.lower()
+    if suffix == ".docx":
         return Document(str(template_path))
-    if template_path.suffix.lower() != ".dotx":
+    if suffix != ".dotx":
         raise ValueError("template must be .docx or .dotx")
 
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_file:
-        tmp_path = Path(tmp_file.name)
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as handle:
+        tmp_path = Path(handle.name)
     try:
         shutil.copy(template_path, tmp_path)
         with zipfile.ZipFile(tmp_path, "r") as src:
@@ -75,6 +75,14 @@ def load_document(template_path: Path | None):
         return Document(str(tmp_path))
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def usable_page_width_cm(doc) -> float:
+    if not doc.sections:
+        return 14.66
+    section = doc.sections[0]
+    width = section.page_width.cm - section.left_margin.cm - section.right_margin.cm
+    return round(width, 2) if width > 0 else 14.66
 
 
 def set_run_font(run, cn_font="宋体", en_font="Times New Roman", size=Pt(12)):
@@ -114,16 +122,14 @@ def add_bookmarked_reference_label(paragraph, number: str):
     start = OxmlElement("w:bookmarkStart")
     start.set(qn("w:id"), bookmark_id)
     start.set(qn("w:name"), ref_bookmark_name(number))
-    start_run = paragraph.add_run()
-    start_run._element.append(start)
+    paragraph.add_run()._element.append(start)
 
     num_run = paragraph.add_run(number)
     set_run_font(num_run)
 
     end = OxmlElement("w:bookmarkEnd")
     end.set(qn("w:id"), bookmark_id)
-    end_run = paragraph.add_run()
-    end_run._element.append(end)
+    paragraph.add_run()._element.append(end)
 
     close_run = paragraph.add_run("] ")
     set_run_font(close_run)
@@ -132,55 +138,55 @@ def add_bookmarked_reference_label(paragraph, number: str):
 def add_ref_field(paragraph, number: str, size=Pt(9)):
     fld_begin = OxmlElement("w:fldChar")
     fld_begin.set(qn("w:fldCharType"), "begin")
-    run1 = paragraph.add_run()
-    set_citation_run_style(run1, size)
-    run1._element.append(fld_begin)
+    run = paragraph.add_run()
+    set_citation_run_style(run, size)
+    run._element.append(fld_begin)
 
     instr = OxmlElement("w:instrText")
     instr.set(qn("xml:space"), "preserve")
     instr.text = f" REF {ref_bookmark_name(number)} \\h \\* CHARFORMAT "
-    run2 = paragraph.add_run()
-    set_citation_run_style(run2, size)
-    run2._element.append(instr)
+    run = paragraph.add_run()
+    set_citation_run_style(run, size)
+    run._element.append(instr)
 
     fld_sep = OxmlElement("w:fldChar")
     fld_sep.set(qn("w:fldCharType"), "separate")
-    run3 = paragraph.add_run()
-    set_citation_run_style(run3, size)
-    run3._element.append(fld_sep)
+    run = paragraph.add_run()
+    set_citation_run_style(run, size)
+    run._element.append(fld_sep)
 
-    run4 = paragraph.add_run(number)
-    set_citation_run_style(run4, size)
+    run = paragraph.add_run(number)
+    set_citation_run_style(run, size)
 
     fld_end = OxmlElement("w:fldChar")
     fld_end.set(qn("w:fldCharType"), "end")
-    run5 = paragraph.add_run()
-    set_citation_run_style(run5, size)
-    run5._element.append(fld_end)
+    run = paragraph.add_run()
+    set_citation_run_style(run, size)
+    run._element.append(fld_end)
 
 
 def add_citation(paragraph, citation_text: str, size=Pt(9)):
-    open_run = paragraph.add_run("[")
-    set_citation_run_style(open_run, size)
+    run = paragraph.add_run("[")
+    set_citation_run_style(run, size)
     pos = 0
     for match in re.finditer(r"\d+", citation_text):
         if match.start() > pos:
-            sep_run = paragraph.add_run(citation_text[pos:match.start()])
-            set_citation_run_style(sep_run, size)
+            run = paragraph.add_run(citation_text[pos : match.start()])
+            set_citation_run_style(run, size)
         add_ref_field(paragraph, match.group(0), size)
         pos = match.end()
     if pos < len(citation_text):
-        tail_run = paragraph.add_run(citation_text[pos:])
-        set_citation_run_style(tail_run, size)
-    close_run = paragraph.add_run("]")
-    set_citation_run_style(close_run, size)
+        run = paragraph.add_run(citation_text[pos:])
+        set_citation_run_style(run, size)
+    run = paragraph.add_run("]")
+    set_citation_run_style(run, size)
 
 
 def add_runs_with_reference_fields(paragraph, text: str, size=Pt(12)):
     pos = 0
     for match in CITATION_RE.finditer(text):
         if match.start() > pos:
-            add_run_with_font(paragraph, text[pos:match.start()], size=size)
+            add_run_with_font(paragraph, text[pos : match.start()], size=size)
         add_citation(paragraph, match.group(1), size=Pt(9))
         pos = match.end()
     if pos < len(text):
@@ -195,7 +201,6 @@ def set_cell_paragraph(cell, text: str):
     paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = Pt(0)
     add_runs_with_reference_fields(paragraph, text, size=Pt(10.5))
-    return paragraph
 
 
 def cm_to_twips(cm: float) -> int:
@@ -236,25 +241,25 @@ def set_table_col_widths(table, widths_cm):
 
 
 def insert_seq_field(paragraph, seq_name: str):
-    fld_begin = OxmlElement("w:fldChar")
-    fld_begin.set(qn("w:fldCharType"), "begin")
-    paragraph.add_run()._element.append(fld_begin)
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    paragraph.add_run()._element.append(begin)
 
     instr = OxmlElement("w:instrText")
     instr.set(qn("xml:space"), "preserve")
     instr.text = f" SEQ {seq_name} \\* ARABIC "
     paragraph.add_run()._element.append(instr)
 
-    fld_sep = OxmlElement("w:fldChar")
-    fld_sep.set(qn("w:fldCharType"), "separate")
-    paragraph.add_run()._element.append(fld_sep)
+    sep = OxmlElement("w:fldChar")
+    sep.set(qn("w:fldCharType"), "separate")
+    paragraph.add_run()._element.append(sep)
 
     number_run = paragraph.add_run("1")
     set_run_font(number_run)
 
-    fld_end = OxmlElement("w:fldChar")
-    fld_end.set(qn("w:fldCharType"), "end")
-    paragraph.add_run()._element.append(fld_end)
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    paragraph.add_run()._element.append(end)
 
 
 def add_page_break(doc):
@@ -267,9 +272,9 @@ def add_page_break(doc):
 
 def repeat_table_header(row):
     tr_pr = row._tr.get_or_add_trPr()
-    tbl_header = OxmlElement("w:tblHeader")
-    tbl_header.set(qn("w:val"), "true")
-    tr_pr.append(tbl_header)
+    header = OxmlElement("w:tblHeader")
+    header.set(qn("w:val"), "true")
+    tr_pr.append(header)
 
 
 PAD = 0.46
@@ -295,29 +300,21 @@ def calc_col_widths(header, data_rows):
 
     total_need = sum(need)
     if total_need <= PAGE_W:
-        widths = list(need)
+        return [round(value, 2) for value in need]
+
+    widths = [0.0] * cols
+    short_total = sum(need[col] for col in short_cols)
+    long_cols = [col for col in range(cols) if col not in short_cols]
+    available = PAGE_W - short_total
+    if available <= 0 or not long_cols:
+        ratio = PAGE_W / total_need
+        widths = [value * ratio for value in need]
     else:
-        short_total = sum(need[col] for col in short_cols)
-        long_cols = [col for col in range(cols) if col not in short_cols]
-        available = PAGE_W - short_total
-        widths = [0.0] * cols
-        if available <= 0 or not long_cols:
-            ratio = PAGE_W / total_need
-            widths = [value * ratio for value in need]
-        else:
-            for col in short_cols:
-                widths[col] = need[col]
-            long_total = sum(need[col] for col in long_cols)
-            for col in long_cols:
-                minimum = min(text_display_width_cm(header[col]), max(0.8, available / len(long_cols)))
-                widths[col] = max(minimum, need[col] / long_total * available)
-            used = sum(widths)
-            if used > PAGE_W:
-                flexible = sum(widths[col] for col in long_cols)
-                target = max(0.1, PAGE_W - sum(widths[col] for col in short_cols))
-                ratio = target / flexible
-                for col in long_cols:
-                    widths[col] *= ratio
+        for col in short_cols:
+            widths[col] = need[col]
+        long_total = sum(need[col] for col in long_cols)
+        for col in long_cols:
+            widths[col] = need[col] / long_total * available
 
     widths = [round(value, 2) for value in widths]
     if sum(widths) > PAGE_W + 0.01:
@@ -344,12 +341,13 @@ def resolve_asset(raw_path: str, asset_dir: Path) -> Path:
     return candidate if candidate.is_absolute() else (asset_dir / candidate).resolve()
 
 
-def add_image(doc, image_path: Path, caption: str, stats: dict, width_cm: float = 14.0):
+def add_image(doc, image_path: Path, caption: str, stats: dict, width_cm: float | None = None):
+    target_width = min(width_cm or PAGE_W, PAGE_W)
     if image_path.exists() and image_path.is_file() and image_path.stat().st_size > 0:
         paragraph = doc.add_paragraph()
         set_paragraph_style(paragraph, doc, "图片")
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        paragraph.add_run().add_picture(str(image_path), width=Cm(min(width_cm, PAGE_W)))
+        paragraph.add_run().add_picture(str(image_path), width=Cm(target_width))
         stats["images"] += 1
     else:
         paragraph = doc.add_paragraph()
@@ -368,6 +366,15 @@ def add_image(doc, image_path: Path, caption: str, stats: dict, width_cm: float 
         stats["figure_captions"] += 1
 
 
+def _frontmatter_end(lines: list[str]) -> int:
+    if not lines or lines[0].strip() != "---":
+        return 0
+    for idx in range(1, len(lines)):
+        if lines[idx].strip() == "---":
+            return idx + 1
+    return 0
+
+
 def parse_and_write(
     md_path: Path,
     doc,
@@ -377,8 +384,7 @@ def parse_and_write(
     strip_heading_numbering: bool = True,
     chapter_page_breaks: bool = True,
 ):
-    text = md_path.read_text(encoding="utf-8")
-    lines = text.splitlines()
+    lines = md_path.read_text(encoding="utf-8").splitlines()
     stats = {
         "headings": 0,
         "paragraphs": 0,
@@ -391,7 +397,7 @@ def parse_and_write(
         "missing_assets": [],
     }
 
-    i = 0
+    i = _frontmatter_end(lines)
     first_heading = True
     in_references = False
     mermaid_index = 0
@@ -411,7 +417,7 @@ def parse_and_write(
             level = min(len(heading_match.group(1)), 3)
             heading_text = heading_match.group(2).strip()
             if strip_heading_numbering:
-                heading_text = re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", heading_text)
+                heading_text = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", heading_text)
             if level == 1 and chapter_page_breaks and not first_heading:
                 add_page_break(doc)
             first_heading = False
@@ -425,9 +431,7 @@ def parse_and_write(
 
         image_match = IMAGE_RE.match(stripped)
         if image_match:
-            caption = image_match.group(1).strip()
-            image_path = resolve_asset(image_match.group(2), asset_dir)
-            add_image(doc, image_path, caption, stats)
+            add_image(doc, resolve_asset(image_match.group(2), asset_dir), image_match.group(1).strip(), stats)
             i += 1
             continue
 
@@ -450,7 +454,11 @@ def parse_and_write(
                         caption = match.group(1).strip()
                         caption_line = pos
                         break
-                image_path = mermaid_images[mermaid_index] if mermaid_index < len(mermaid_images) else Path(f"mermaid_{mermaid_index + 1}.png")
+                image_path = (
+                    mermaid_images[mermaid_index]
+                    if mermaid_index < len(mermaid_images)
+                    else (asset_dir / f"mermaid_{mermaid_index + 1}.png")
+                )
                 mermaid_index += 1
                 add_image(doc, image_path, caption, stats)
                 if caption_line >= 0:
@@ -474,8 +482,9 @@ def parse_and_write(
                 continue
 
             header = [cell.strip() for cell in table_lines[0].split("|")[1:-1]]
-            data_start = 2 if len(table_lines) >= 2 and re.match(r"^\|?\s*:?-+", table_lines[1]) else 1
-            data_rows = [[cell.strip() for cell in row.split("|")[1:-1]] for row in table_lines[data_start:]]
+            separator = bool(re.match(r"^\|?\s*:?-+", table_lines[1]))
+            data_lines = table_lines[2:] if separator else table_lines[1:]
+            data_rows = [[cell.strip() for cell in row.split("|")[1:-1]] for row in data_lines]
             if not header:
                 continue
 
@@ -511,8 +520,7 @@ def parse_and_write(
             i += 1
             continue
 
-        unordered_match = re.match(r"^[-*]\s+(.*)", stripped)
-        if unordered_match:
+        if re.match(r"^[-*]\s+(.*)", stripped):
             while i < len(lines):
                 match = re.match(r"^[-*]\s+(.*)", lines[i].strip())
                 if not match:
@@ -525,8 +533,7 @@ def parse_and_write(
                 i += 1
             continue
 
-        ordered_match = re.match(r"^(\d+)\.\s+(.*)", stripped)
-        if ordered_match:
+        if re.match(r"^(\d+)\.\s+(.*)", stripped):
             while i < len(lines):
                 match = re.match(r"^(\d+)\.\s+(.*)", lines[i].strip())
                 if not match:
@@ -552,18 +559,21 @@ def parse_and_write(
     return stats
 
 
-def validate_output(output_path: Path, expected_stats: dict) -> dict:
+def validate_output(output_path: Path, expected_stats: dict, baseline: dict | None = None) -> dict:
+    baseline = baseline or {"tables": 0, "images": 0}
     reopened = Document(str(output_path))
-    heading_count = sum(1 for p in reopened.paragraphs if p.style and p.style.name.startswith("Heading"))
+    expected_tables = baseline.get("tables", 0) + expected_stats["tables"]
+    expected_images = baseline.get("images", 0) + expected_stats["images"]
     result = {
         "docx_reopen": True,
         "paragraph_count": len(reopened.paragraphs),
         "table_count": len(reopened.tables),
         "image_count": len(reopened.inline_shapes),
-        "heading_count": heading_count,
+        "expected_table_count": expected_tables,
+        "expected_image_count": expected_images,
         "checks": {
-            "tables_preserved": len(reopened.tables) == expected_stats["tables"],
-            "images_preserved": len(reopened.inline_shapes) == expected_stats["images"],
+            "tables_preserved": len(reopened.tables) == expected_tables,
+            "images_preserved": len(reopened.inline_shapes) == expected_images,
         },
     }
     result["pass"] = all(result["checks"].values())
@@ -577,7 +587,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-t", "--template", help="optional .docx/.dotx template")
     parser.add_argument("--asset-dir", help="base directory for relative Markdown image paths; defaults to input directory")
     parser.add_argument("--mermaid-image", action="append", default=[], help="rendered Mermaid image in document order; repeat for multiple diagrams")
-    parser.add_argument("--page-width-cm", type=float, default=14.66, help="usable page width for tables/images")
+    parser.add_argument("--page-width-cm", type=float, help="usable page width; defaults to template/document margins")
     parser.add_argument("--keep-heading-numbering", action="store_true", help="do not strip manual numeric prefixes from headings")
     parser.add_argument("--no-chapter-page-breaks", action="store_true", help="do not insert page breaks before level-1 chapters")
     parser.add_argument("--strict-assets", action="store_true", help="fail when an image asset is missing")
@@ -598,14 +608,16 @@ def main() -> int:
         raise SystemExit(f"invalid Markdown input: {input_path}")
     if output_path.suffix.lower() != ".docx":
         raise SystemExit("output must end with .docx")
-    if template_path and not template_path.is_file():
-        raise SystemExit(f"template not found: {template_path}")
-    if args.page_width_cm <= 0:
+    if template_path and (not template_path.is_file() or template_path.suffix.lower() not in {".docx", ".dotx"}):
+        raise SystemExit(f"invalid template: {template_path}")
+    if args.page_width_cm is not None and args.page_width_cm <= 0:
         raise SystemExit("--page-width-cm must be positive")
 
-    PAGE_W = args.page_width_cm
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc = load_document(template_path)
+    PAGE_W = args.page_width_cm or usable_page_width_cm(doc)
+    baseline = {"tables": len(doc.tables), "images": len(doc.inline_shapes)}
+
     stats = parse_and_write(
         input_path,
         doc,
@@ -619,11 +631,13 @@ def main() -> int:
         raise SystemExit("missing assets: " + ", ".join(stats["missing_assets"]))
 
     doc.save(str(output_path))
-    validation = validate_output(output_path, stats)
+    validation = validate_output(output_path, stats, baseline)
     report = {
         "input": str(input_path),
         "template": str(template_path) if template_path else None,
         "output": str(output_path),
+        "page_width_cm": PAGE_W,
+        "baseline": baseline,
         "stats": stats,
         "validation": validation,
     }
