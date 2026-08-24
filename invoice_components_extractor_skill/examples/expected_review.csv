@@ -1,0 +1,2 @@
+source_file,source_type,source_page,source_sheet,source_row,raw_text,name,model,qty,unit,reason
+example_input.csv,csv,,,5,项目名称=未知组件 | 规格型号=ABC-123 | 数量=2 | 单位=个,未知组件,ABC-123,2,个,insufficient_evidence
