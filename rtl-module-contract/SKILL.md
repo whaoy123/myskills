@@ -335,3 +335,20 @@ output        rxen_o         // 通道接收使能
 - 在一条消息完成后形成可供后级读取的有效记录。
 
 这里不写具体消息状态机、BRAM offset 写入顺序、超时计数器实现和错误位内部组合逻辑；这些进入 `rtl_design.md`。
+
+---
+
+# Human-facing finalization
+
+`module_contract.md` 是正式的人类可读模块边界文档。用户确认 Contract 内容并满足 Gate 后，在冻结并交给后续 `rtl-design-doc` 前，运行 `no-negative-echo` 做最后清理。
+
+清理后的 Contract 应直接描述当前已接受的 Interface、Purpose 和 Capabilities，不保留仅属于本次会话、已经被否决或替换的接口方案与措辞。
+
+以下内容必须保留：
+
+- 当前仍然有效的真实约束；
+- 为兼容、安全或迁移必须记录的变化事实；
+- 仍未解决且明确标记的 `TODO`；
+- 对理解当前接口边界确有必要的审计事实。
+
+如果另有 Review、讨论记录或设计历史文件，不对这些历史/审计记录执行该清理。

@@ -256,3 +256,13 @@ Warning 可以保留进入 TB，但应记录清楚。
 总结：
 
 > Pre-TB Review 负责清掉明显问题；TB 才负责证明设计在验证计划覆盖范围内是否正确。
+
+---
+
+# Human-facing finalization
+
+当前这一轮正式交付给人的 Review 结果在内容确定后运行 `no-negative-echo`，使最终 `RTL Review` 只反映当前这次审核仍然成立的 Blocking、Warning 和 Result，不残留已经被本轮复核否定的会话措辞或无效替代说法。
+
+`no-negative-echo` **不能**用来删除真实发现的问题。当前仍成立的 Blocking/Warning、必要的原因和最小修改方向必须完整保留。
+
+如果项目另外保存历史 Review、审计记录或问题演进日志，这些历史记录不执行该清理；重新 Review 后可以生成新的当前结果，但不能借清理覆盖真实审核历史。

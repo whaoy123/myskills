@@ -626,7 +626,36 @@ Debug 过程中不要每试一个修改就同步 `rtl_design.md`。
 
 ---
 
-# 16. 核心原则
+# 16. Human-facing finalization
+
+`verification_plan.md` 和最终验证结论属于正式的人类可读验证产物。它们的技术内容确认后运行 `no-negative-echo`，使当前计划和结论只表达现行验证目标、时序要求、检查方式、执行结果和仍然有效的限制。
+
+最终化顺序：
+
+```text
+确认 Contract / Design / Plan 一致
+→ 完成 TB 与回归
+→ 写入当前验证结果
+→ 应用工程文档风格
+→ run no-negative-echo
+→ final read-back
+```
+
+必须明确豁免以下内容：
+
+- `debug_record.md`；
+- FAIL 日志；
+- 仿真原始日志；
+- 历史 Review / Audit；
+- 需要保留的问题演进事实。
+
+这些记录的职责就是保存失败、根因、修改和回归历史，不能因为最终版本已经 PASS 就清除或改写。
+
+`no-negative-echo` 也不能删除 `verification_plan.md` 中仍然有效的异常用例、边界条件、风险说明、协议限制或必要的比较依据。
+
+---
+
+# 17. 核心原则
 
 ```text
 设计文档定义正确行为。
@@ -634,4 +663,5 @@ Verification Plan 把正确行为变成可检查要求。
 TB 负责执行检查，不负责重新定义设计。
 AI 可以自动执行 Debug，但不能替用户决定未定义的关键设计语义。
 首次人工验的是“TB 这把尺子准不准”，之后回归以自动检查为主。
+正式计划和最终结论可以清理会话残影；Debug 与失败历史必须保留。
 ```

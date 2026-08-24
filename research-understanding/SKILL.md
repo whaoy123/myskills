@@ -77,3 +77,11 @@ The human-readable report should contain:
 6. the next most useful concept/question.
 
 Keep the report explanatory, not a dumping ground for source lists.
+
+## Human-facing finalization
+
+Before `reports/current_understanding.md` is treated as the current human-readable report or handed to another stage, run `no-negative-echo` on that report after its technical content is settled.
+
+The finalization pass should describe the accepted current understanding directly and remove rejected session-only wording or stale conversational alternatives that no longer belong in the report.
+
+Do **not** apply this cleanup to `knowledge_model.yaml`, `research_questions.yaml`, `open_questions.yaml`, evidence records, or other authoritative project state. Those files must preserve the real knowledge state, uncertainty, and history needed by the research workflow.
