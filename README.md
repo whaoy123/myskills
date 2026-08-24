@@ -18,7 +18,6 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | Skill | Description |
 |-------|-------------|
 | [grill-driven-rtl-design](grill-driven-rtl-design/SKILL.md) | RTL architecture & module design driven by relentless interactive grilling and design-tree pruning before writing SystemVerilog. |
-| [rtl-stepwise-coding](rtl-stepwise-coding/SKILL.md) | Stepwise RTL collaboration workflow: one key question per round, confirmed design rules, small synthesizable increments, project-rule awareness, and verification handoff. Uses `synthesizable-human-rtl` for RTL coding standards. |
 | [synthesizable-human-rtl](synthesizable-human-rtl/SKILL.md) | Current preferred RTL writing standard for synthesizable Verilog/SystemVerilog: synthesis-safe design, readable handwritten structure, semantic names, Chinese intent comments, and minimal incremental implementation. |
 | [rtl-adversarial-tb](rtl-adversarial-tb/SKILL.md) | Adversarial three-phase workflow for generating SV testbenches: (1) verification plan, (2) adversarial review until approved, (3) TB authoring and simulation. |
 
