@@ -29,7 +29,8 @@ description: 从采购发票或采购明细 PDF/XLSX/CSV 中提取“采购证�
 - 用发票替代 BOM、网表或原理图；
 - 根据相似名字擅自建立 `原型号 → 替换型号` 映射；
 - 猜测缺失型号、封装或数量；
-- 因为某行“看起来不像器件”就静默丢弃不确定记录。
+- 因为某行“看起来不像器件”就静默丢弃不确定记录；
+- 默认把采购表和发票中的同一笔订单重复累加。
 
 下游正式焊接清单仍应使用：
 
@@ -137,7 +138,13 @@ reason
 最终清单中的聚合行必须保留来源集合，例如：
 
 ```text
-invoice-a.pdf:page 1 line 18；invoice-b.xlsx:sheet 明细 row 7
+invoice-a.pdf:page 1 line 18
+```
+
+如果用户明确允许跨来源合并，也可以出现：
+
+```text
+order-a.csv:row 7；order-b.csv:row 11
 ```
 
 不能只输出一个无法回溯的总数量。
@@ -171,7 +178,7 @@ QFN-32 (SMD)
 
 ## 合并规则
 
-只有以下关键字段一致时才允许合并数量：
+同一来源内部，只有以下关键字段一致时才允许合并数量：
 
 ```text
 category
@@ -180,23 +187,40 @@ package
 unit
 ```
 
-无可靠型号时默认保守，不跨来源机械合并。
+### 默认：不跨来源合并
+
+不同输入文件可能只是同一笔采购的不同证据，例如：
+
+```text
+采购表.xlsx
+发票.pdf
+```
+
+所以默认把 `source_file` 也纳入合并边界，**不会把不同文件里的同型号数量直接相加**。
+
+只有已经确认不同来源代表独立采购、不会重复计数时，才允许：
+
+```bash
+--merge-across-sources
+```
+
+无可靠型号时继续保守，不跨来源机械合并。
 
 例如：
 
 ```text
-同型号 OPA197ID + 同封装 + 同单位
+同一采购表内：OPA197ID + 同封装 + 同单位
 → 可以汇总数量
 ```
 
 而：
 
 ```text
-“贴片电容 1uF”
-“RVT1H1R0M0405”
+采购表.xlsx：OPA197ID × 10
+发票.pdf：OPA197ID × 10
 ```
 
-没有确认映射时不得因为参数相似自动合并。
+默认输出为两条来源证据，不直接得到 `20`。
 
 ## 固定 CLI
 
@@ -225,6 +249,12 @@ python scripts/extract_soldering_components.py \
 
 ```bash
 --markdown components.md
+```
+
+确认来源互不重复时，才使用：
+
+```bash
+--merge-across-sources
 ```
 
 ## 固定输出
@@ -284,6 +314,7 @@ components.md
 - source warning；
 - normalized / include / exclude / review 数量；
 - 聚合后 components 数量；
+- 是否启用了跨来源合并；
 - Excel 回读行数；
 - 输出路径。
 
@@ -291,15 +322,14 @@ components.md
 
 ### Step 1 — Inspect sources
 
-先看输入文件类型和数量。
+先看输入文件类型和数量，并判断它们之间是什么关系。
 
-如果有采购表这种结构化 XLSX/CSV，同时又有 PDF 发票：
+如果同时出现采购表和发票：
 
 - 两者都可以提取；
-- 不要自动假设它们是两笔不同采购；
-- 如果后续需要计算“实际采购总量”，仍需结合订单/发票对应关系去重。
-
-本 Skill 的聚合只针对输入记录本身，不承担跨采购证据的订单去重语义。
+- 默认按两份独立证据保留，不跨来源加总；
+- 如果需要算“实际采购总量”，先确认它们是否对应同一订单；
+- 只有确认不会重复计数后，才允许跨来源合并。
 
 ### Step 2 — Normalize
 
@@ -321,7 +351,9 @@ components.md
 
 ### Step 5 — Aggregate safely
 
-按合并规则汇总数量并保留全部来源。
+先在单来源内部合并。
+
+跨来源合并属于额外决策，必须有“这些来源代表不同采购、不会重复计数”的依据。
 
 ### Step 6 — Export
 
@@ -337,12 +369,12 @@ components.md
 
 ## Gate
 
-本 Skill 可以在存在 review 时正常完成，但必须明确报告 review 数量。
+本 Skill 可以在存在 review 或 source warning 时完成，但必须明确报告数量和内容。
 
 只有以下情况属于 Blocking：
 
 - 没有找到任何支持的输入文件；
-- 输入文件无法读取且没有其它有效来源；
+- 输入文件全部无法读取；
 - 输出 XLSX 无法回读；
 - 聚合后行数与 Excel 回读不一致；
 - 解析器出现异常但被静默吞掉。
@@ -375,4 +407,4 @@ components.md
 python -m unittest discover -s tests -v
 ```
 
-测试至少覆盖三态判定、PDF 行解析、CSV/XLSX 输入、安全合并和 XLSX 回读。
+测试至少覆盖三态判定、PDF 行解析、CSV/XLSX 输入、跨来源防重复、安全合并和 XLSX 回读。
