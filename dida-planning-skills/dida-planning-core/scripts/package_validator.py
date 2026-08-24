@@ -39,6 +39,20 @@ def _manifest_files(root: Path) -> dict[str, Path]:
     return files
 
 
+def _manifest_digest(path: Path) -> str:
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        canonical = data
+    else:
+        # Canonicalize text to CRLF before hashing so the manifest is stable
+        # across Git/Windows/Linux checkout line-ending policies.
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        canonical = text.replace("\n", "\r\n").encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def validate_manifest(root: Path) -> list[str]:
     manifest = root / "MANIFEST.sha256"
     if not manifest.exists():
@@ -62,7 +76,7 @@ def validate_manifest(root: Path) -> list[str]:
     for rel in sorted(set(entries) - set(files)):
         errors.append(f"MANIFEST.sha256: missing file {rel}")
     for rel in sorted(set(entries) & set(files)):
-        actual = hashlib.sha256(files[rel].read_bytes()).hexdigest()
+        actual = _manifest_digest(files[rel])
         if actual != entries[rel]:
             errors.append(f"MANIFEST.sha256: hash mismatch {rel}")
     return errors
