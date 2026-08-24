@@ -1,36 +1,83 @@
 # md-to-docx
 
-Convert Markdown documents into Word `.docx` files with template-aware formatting.
+把 Markdown 转成模板感知、可回读校验的 Word `.docx`。
 
-This skill is intended for Chinese academic, course, and technical reports where the output must follow a Word template and needs reliable handling of headings, tables, images, captions, page breaks, and mixed Chinese/English typography.
+适合中文技术报告、课程报告、论文草稿和工程文档。支持标题、正文、列表、表格、图片、Mermaid 渲染图、题注、数字参考文献交叉引用和中英文字体处理。
 
-## Files
-
-- `SKILL.md`: Codex skill instructions and activation metadata.
-- `md2docx.py`: Conversion script based on `python-docx`.
-
-## Dependencies
+## 安装
 
 ```bash
 pip install python-docx
 ```
 
-## Usage
-
-The current script is configured through constants near the top of `md2docx.py`:
-
-```python
-TEMPLATE_SRC = "path/to/template.dotx"
-MD_PATH = "path/to/source.md"
-OUT_PATH = "path/to/output.docx"
-MERMAID_SYS = "path/to/diagram1.png"
-MERMAID_FPGA = "path/to/diagram2.png"
-```
-
-Update those paths for the target project, then run:
+## 基本使用
 
 ```bash
-python md2docx.py
+python md2docx.py \
+  --input report.md \
+  --output report.docx
 ```
 
-After generating the Word file, open or render it to verify headings, tables, captions, images, fonts, and page breaks.
+使用 `.docx/.dotx` 模板：
+
+```bash
+python md2docx.py \
+  --input report.md \
+  --template report.dotx \
+  --output report.docx \
+  --report report_validation.json
+```
+
+## 图片
+
+标准 Markdown 图片：
+
+```markdown
+![系统结构](images/system.png)
+```
+
+相对路径默认从 Markdown 所在目录解析，也可指定：
+
+```bash
+--asset-dir /path/to/assets
+```
+
+Mermaid 代码块先由外部工具渲染为图片，再按文档出现顺序重复传入：
+
+```bash
+--mermaid-image system.png \
+--mermaid-image fpga.png
+```
+
+缺失图片默认写入占位并记录到 validation report；需要严格模式时使用：
+
+```bash
+--strict-assets
+```
+
+## 常用参数
+
+```text
+-i, --input <file.md>
+-o, --output <file.docx>
+-t, --template <file.docx|file.dotx>
+--asset-dir <dir>
+--mermaid-image <image>      # 可重复
+--page-width-cm <number>
+--keep-heading-numbering
+--no-chapter-page-breaks
+--strict-assets
+--report <report.json>
+```
+
+## 校验
+
+脚本保存后会重新用 `python-docx` 打开输出文件，并核对表格和嵌入图片数量。推荐始终保存 `--report`。
+
+结构校验只能证明 DOCX 可打开、主要对象没有在写入过程中丢失；正式交付仍应再看一次标题、分页、表格宽度、图片和题注的视觉效果。
+
+## 测试
+
+```bash
+python -m unittest discover -s tests -v
+```
