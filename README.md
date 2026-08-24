@@ -18,10 +18,10 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 | Skill | Description |
 |-------|-------------|
-| [grill-driven-rtl-design](grill-driven-rtl-design/SKILL.md) | Develops RTL architecture and module design through interactive questioning and design-tree pruning before implementation. |
+| [rtl-design-flow](rtl-design-flow/SKILL.md) | Orchestrates the RTL module flow across Contract, Design, Coding, Pre-TB Review, Verification, Debug/Regression, and stage gates without duplicating child-skill rules. |
 | [rtl-module-contract](rtl-module-contract/SKILL.md) | Produces a compact `module_contract.md` that freezes interface, module purpose, responsibilities, and externally observable capabilities before detailed RTL design. |
 | [rtl-design-doc](rtl-design-doc/SKILL.md) | Produces a stable `rtl_design.md` describing the module's main flow, responsibility split, key storage, timing semantics, and design intent. |
-| [synthesizable-human-rtl](synthesizable-human-rtl/SKILL.md) | RTL writing standard for synthesizable Verilog/SystemVerilog with synthesis-safe structure, semantic naming, readable handwritten organization, and intent-focused comments. |
+| [synthesizable-human-rtl](synthesizable-human-rtl/SKILL.md) | RTL coding standard for synthesis-safe Verilog/SystemVerilog expression, project-compatible language usage, semantic naming, formatting, structure, and intent-focused comments. |
 | [rtl-pre-tb-review](rtl-pre-tb-review/SKILL.md) | Runs a lightweight pre-TB static review for interface, width, reset, drivers, FSM control, handshake, counters, and consistency with the approved design. |
 | [rtl-verification](rtl-verification/SKILL.md) | Builds the verification plan, SystemVerilog TB, simulation scripts, Questa wave setup, debug record, and regression loop from the approved Contract and Design. |
 | [rtl-adversarial-tb](rtl-adversarial-tb/SKILL.md) | Uses an adversarial three-stage workflow for verification-plan review, SystemVerilog TB authoring, and simulation. |
