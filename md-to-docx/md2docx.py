@@ -1,96 +1,113 @@
 #!/usr/bin/env python3
-"""将 系统设计方案模板.md 转换为 Word 文档，基于开题报告.dotx 模板。"""
+"""Template-aware Markdown to DOCX converter.
 
+The script intentionally supports a focused Markdown subset used by engineering,
+course, and academic reports: headings, paragraphs, lists, pipe tables, fenced
+code, Mermaid placeholders/rendered images, normal Markdown images, captions,
+and numeric reference markers.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
 import re
 import shutil
+import tempfile
 import zipfile
-import os
 from pathlib import Path
+
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml.ns import qn
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Pt, RGBColor
 
 
-# ============================================================
-# 常量
-# ============================================================
-TEMPLATE_SRC = "/mnt/c/Users/why/Desktop/开题报告.dotx"
-MD_PATH = "/home/why/FPGA/1553B/系统设计方案模板.md"
-OUT_PATH = "/home/why/FPGA/1553B/系统设计方案模板.docx"
-MERMAID_SYS = "/tmp/mermaid_sys.png"
-MERMAID_FPGA = "/tmp/mermaid_fpga.png"
-
-# 页面可用宽度 14.66cm（A4, 左3.17+右3.17）
 PAGE_W = 14.66
+BOOKMARK_ID = 1000
+CITATION_RE = re.compile(r"\[((?:\d+|[,\s，、;；\-–—])+)\]")
+IMAGE_RE = re.compile(r"^!\[(.*?)\]\((.+?)\)\s*$")
+CAPTION_RE = re.compile(r"^(表|图)\s*\d+[\-.]\d+\s*(.*)")
 
 
-# ============================================================
-# 工具函数
-# ============================================================
+def style_exists(doc, style_name: str) -> bool:
+    try:
+        doc.styles[style_name]
+        return True
+    except KeyError:
+        return False
 
-def load_template_as_docx(src_path):
-    """将 .dotx 复制并转换 content type 后作为 .docx 打开。"""
-    tmp = "/tmp/_template_as_docx.docx"
-    shutil.copy(src_path, tmp)
-    with zipfile.ZipFile(tmp, "r") as z:
-        files = {}
-        for item in z.infolist():
-            data = z.read(item.filename)
-            if item.filename == "[Content_Types].xml":
-                data = data.decode().replace(
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
-                ).encode()
-            files[item.filename] = data
-    os.remove(tmp)
-    with zipfile.ZipFile(tmp, "w") as z2:
-        for name, data in files.items():
-            z2.writestr(name, data)
-    return Document(tmp)
+
+def set_paragraph_style(paragraph, doc, style_name: str) -> None:
+    if style_exists(doc, style_name):
+        paragraph.style = doc.styles[style_name]
+
+
+def load_document(template_path: Path | None):
+    """Open .docx/.dotx template or create a blank document."""
+    if template_path is None:
+        return Document()
+    if template_path.suffix.lower() == ".docx":
+        return Document(str(template_path))
+    if template_path.suffix.lower() != ".dotx":
+        raise ValueError("template must be .docx or .dotx")
+
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_file:
+        tmp_path = Path(tmp_file.name)
+    try:
+        shutil.copy(template_path, tmp_path)
+        with zipfile.ZipFile(tmp_path, "r") as src:
+            files = {}
+            for item in src.infolist():
+                data = src.read(item.filename)
+                if item.filename == "[Content_Types].xml":
+                    data = data.decode("utf-8").replace(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+                    ).encode("utf-8")
+                files[item.filename] = data
+        tmp_path.unlink(missing_ok=True)
+        with zipfile.ZipFile(tmp_path, "w") as dst:
+            for name, data in files.items():
+                dst.writestr(name, data)
+        return Document(str(tmp_path))
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 def set_run_font(run, cn_font="宋体", en_font="Times New Roman", size=Pt(12)):
-    """设置 run 的中西文字体，默认小四（12pt）。"""
     run.font.name = en_font
     run.font.size = size
-    rPr = run._element.get_or_add_rPr()
-    rFonts = rPr.get_or_add_rFonts()
-    rFonts.set(qn("w:eastAsia"), cn_font)
+    rpr = run._element.get_or_add_rPr()
+    rfonts = rpr.get_or_add_rFonts()
+    rfonts.set(qn("w:eastAsia"), cn_font)
 
 
 def add_run_with_font(paragraph, text, cn_font="宋体", en_font="Times New Roman", size=Pt(12)):
-    """向段落添加一个 run 并设置字体。"""
     run = paragraph.add_run(text)
     set_run_font(run, cn_font, en_font, size)
     return run
 
 
-BOOKMARK_ID = 1000
-CITATION_RE = re.compile(r"\[((?:\d+|[,\s，、;；\-–—])+)\]")
-
-
-def ref_bookmark_name(number):
+def ref_bookmark_name(number: str) -> str:
     return f"ref_{number}"
 
 
-def _next_bookmark_id():
+def next_bookmark_id() -> str:
     global BOOKMARK_ID
     BOOKMARK_ID += 1
     return str(BOOKMARK_ID)
 
 
-def _set_citation_run_style(run, size=Pt(9)):
+def set_citation_run_style(run, size=Pt(9)):
     set_run_font(run, size=size)
     run.font.superscript = True
 
 
-def add_bookmarked_reference_label(paragraph, number):
-    """Write [n] and bookmark only n, so body citations can REF it."""
-    bookmark_id = _next_bookmark_id()
-
+def add_bookmarked_reference_label(paragraph, number: str):
+    bookmark_id = next_bookmark_id()
     open_run = paragraph.add_run("[")
     set_run_font(open_run)
 
@@ -112,551 +129,513 @@ def add_bookmarked_reference_label(paragraph, number):
     set_run_font(close_run)
 
 
-def add_ref_field(paragraph, number, size=Pt(9)):
-    """Insert a Word REF field to a bibliography bookmark."""
+def add_ref_field(paragraph, number: str, size=Pt(9)):
     fld_begin = OxmlElement("w:fldChar")
     fld_begin.set(qn("w:fldCharType"), "begin")
     run1 = paragraph.add_run()
-    _set_citation_run_style(run1, size)
+    set_citation_run_style(run1, size)
     run1._element.append(fld_begin)
 
     instr = OxmlElement("w:instrText")
     instr.set(qn("xml:space"), "preserve")
     instr.text = f" REF {ref_bookmark_name(number)} \\h \\* CHARFORMAT "
     run2 = paragraph.add_run()
-    _set_citation_run_style(run2, size)
+    set_citation_run_style(run2, size)
     run2._element.append(instr)
 
     fld_sep = OxmlElement("w:fldChar")
     fld_sep.set(qn("w:fldCharType"), "separate")
     run3 = paragraph.add_run()
-    _set_citation_run_style(run3, size)
+    set_citation_run_style(run3, size)
     run3._element.append(fld_sep)
 
     run4 = paragraph.add_run(number)
-    _set_citation_run_style(run4, size)
+    set_citation_run_style(run4, size)
 
     fld_end = OxmlElement("w:fldChar")
     fld_end.set(qn("w:fldCharType"), "end")
     run5 = paragraph.add_run()
-    _set_citation_run_style(run5, size)
+    set_citation_run_style(run5, size)
     run5._element.append(fld_end)
 
 
-def add_citation(paragraph, citation_text, size=Pt(9)):
-    """Render [n] / [n,m] as superscript cross-references."""
+def add_citation(paragraph, citation_text: str, size=Pt(9)):
     open_run = paragraph.add_run("[")
-    _set_citation_run_style(open_run, size)
-
+    set_citation_run_style(open_run, size)
     pos = 0
-    for m in re.finditer(r"\d+", citation_text):
-        if m.start() > pos:
-            sep_run = paragraph.add_run(citation_text[pos:m.start()])
-            _set_citation_run_style(sep_run, size)
-        add_ref_field(paragraph, m.group(0), size)
-        pos = m.end()
-
+    for match in re.finditer(r"\d+", citation_text):
+        if match.start() > pos:
+            sep_run = paragraph.add_run(citation_text[pos:match.start()])
+            set_citation_run_style(sep_run, size)
+        add_ref_field(paragraph, match.group(0), size)
+        pos = match.end()
     if pos < len(citation_text):
         tail_run = paragraph.add_run(citation_text[pos:])
-        _set_citation_run_style(tail_run, size)
-
+        set_citation_run_style(tail_run, size)
     close_run = paragraph.add_run("]")
-    _set_citation_run_style(close_run, size)
+    set_citation_run_style(close_run, size)
 
 
-def add_runs_with_reference_fields(paragraph, text, cn_font="宋体", en_font="Times New Roman", size=Pt(12)):
-    """Add paragraph text while turning numeric [n] citations into REF fields."""
+def add_runs_with_reference_fields(paragraph, text: str, size=Pt(12)):
     pos = 0
-    for m in CITATION_RE.finditer(text):
-        if m.start() > pos:
-            add_run_with_font(paragraph, text[pos:m.start()], cn_font, en_font, size)
-        add_citation(paragraph, m.group(1), size=Pt(9))
-        pos = m.end()
+    for match in CITATION_RE.finditer(text):
+        if match.start() > pos:
+            add_run_with_font(paragraph, text[pos:match.start()], size=size)
+        add_citation(paragraph, match.group(1), size=Pt(9))
+        pos = match.end()
     if pos < len(text):
-        add_run_with_font(paragraph, text[pos:], cn_font, en_font, size)
+        add_run_with_font(paragraph, text[pos:], size=size)
 
 
-def set_cell_paragraph(cell, text, style_name="表格文"):
-    """设置单元格内容，使用指定样式。"""
+def set_cell_paragraph(cell, text: str):
     cell.text = ""
-    p = cell.paragraphs[0]
-    try:
-        p.style = cell.part.document.styles[style_name]
-    except KeyError:
-        pass
-    # 清除多余间距
-    p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(0)
-    # 表格文样式自带字号，不覆盖
-    add_runs_with_reference_fields(p, text, size=Pt(10.5))
-    return p
+    paragraph = cell.paragraphs[0]
+    doc = cell.part.document
+    set_paragraph_style(paragraph, doc, "表格文")
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(0)
+    add_runs_with_reference_fields(paragraph, text, size=Pt(10.5))
+    return paragraph
 
 
-def cm_to_twips(cm):
-    """厘米转 twips（1 cm = 567 twips）。"""
+def cm_to_twips(cm: float) -> int:
     return int(round(cm * 567))
 
 
 def set_table_col_widths(table, widths_cm):
-    """直接设置表格网格列宽和单元格宽度，确保 Word 使用固定列宽。"""
     ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     tbl = table._tbl
-    tblPr = tbl.find(f"{{{ns}}}tblPr")
-    if tblPr is None:
-        tblPr = OxmlElement("w:tblPr")
-        tbl.insert(0, tblPr)
+    tbl_pr = tbl.find(f"{{{ns}}}tblPr")
+    if tbl_pr is None:
+        tbl_pr = OxmlElement("w:tblPr")
+        tbl.insert(0, tbl_pr)
 
-    # 设置表格总宽 = 固定值（dxa = twips）
-    tblW = tblPr.find(f"{{{ns}}}tblW")
-    if tblW is None:
-        tblW = OxmlElement("w:tblW")
-        tblPr.append(tblW)
-    total_twips = cm_to_twips(sum(widths_cm))
-    tblW.set(qn("w:w"), str(total_twips))
-    tblW.set(qn("w:type"), "dxa")
+    tbl_w = tbl_pr.find(f"{{{ns}}}tblW")
+    if tbl_w is None:
+        tbl_w = OxmlElement("w:tblW")
+        tbl_pr.append(tbl_w)
+    tbl_w.set(qn("w:w"), str(cm_to_twips(sum(widths_cm))))
+    tbl_w.set(qn("w:type"), "dxa")
 
-    # 设置 tblLayout 为 fixed
-    tblLayout = tblPr.find(f"{{{ns}}}tblLayout")
-    if tblLayout is None:
-        tblLayout = OxmlElement("w:tblLayout")
-        tblPr.append(tblLayout)
-    tblLayout.set(qn("w:type"), "fixed")
+    tbl_layout = tbl_pr.find(f"{{{ns}}}tblLayout")
+    if tbl_layout is None:
+        tbl_layout = OxmlElement("w:tblLayout")
+        tbl_pr.append(tbl_layout)
+    tbl_layout.set(qn("w:type"), "fixed")
 
-    # 更新 tblGrid 的 gridCol 宽度（dxa = twips）
-    tblGrid = tbl.find(f"{{{ns}}}tblGrid")
-    if tblGrid is not None:
-        gridCols = tblGrid.findall(f"{{{ns}}}gridCol")
-        for i, col in enumerate(gridCols):
-            if i < len(widths_cm):
-                col.set(qn("w:w"), str(cm_to_twips(widths_cm[i])))
+    tbl_grid = tbl.find(f"{{{ns}}}tblGrid")
+    if tbl_grid is not None:
+        for idx, col in enumerate(tbl_grid.findall(f"{{{ns}}}gridCol")):
+            if idx < len(widths_cm):
+                col.set(qn("w:w"), str(cm_to_twips(widths_cm[idx])))
 
-    # 同时设置每行单元格宽度
     for row in table.rows:
-        for i, cell in enumerate(row.cells):
-            if i < len(widths_cm):
-                cell.width = Cm(widths_cm[i])
+        for idx, cell in enumerate(row.cells):
+            if idx < len(widths_cm):
+                cell.width = Cm(widths_cm[idx])
 
 
-def insert_seq_field(paragraph, seq_name):
-    """插入 Word SEQ 域实现自动编号。"""
+def insert_seq_field(paragraph, seq_name: str):
     fld_begin = OxmlElement("w:fldChar")
     fld_begin.set(qn("w:fldCharType"), "begin")
-    run1 = paragraph.add_run()
-    run1._element.append(fld_begin)
+    paragraph.add_run()._element.append(fld_begin)
 
     instr = OxmlElement("w:instrText")
     instr.set(qn("xml:space"), "preserve")
     instr.text = f" SEQ {seq_name} \\* ARABIC "
-    run2 = paragraph.add_run()
-    run2._element.append(instr)
+    paragraph.add_run()._element.append(instr)
 
     fld_sep = OxmlElement("w:fldChar")
     fld_sep.set(qn("w:fldCharType"), "separate")
-    run3 = paragraph.add_run()
-    run3._element.append(fld_sep)
+    paragraph.add_run()._element.append(fld_sep)
 
-    run4 = paragraph.add_run("1")
-    set_run_font(run4)
+    number_run = paragraph.add_run("1")
+    set_run_font(number_run)
 
     fld_end = OxmlElement("w:fldChar")
     fld_end.set(qn("w:fldCharType"), "end")
-    run5 = paragraph.add_run()
-    run5._element.append(fld_end)
+    paragraph.add_run()._element.append(fld_end)
 
 
 def add_page_break(doc):
-    """插入分页符。"""
-    p = doc.add_paragraph()
-    run = p.add_run()
+    paragraph = doc.add_paragraph()
+    run = paragraph.add_run()
     br = OxmlElement("w:br")
     br.set(qn("w:type"), "page")
     run._element.append(br)
 
 
 def repeat_table_header(row):
-    """设置表格行在跨页时重复显示为表头。"""
-    trPr = row._tr.get_or_add_trPr()
-    tblHeader = OxmlElement("w:tblHeader")
-    tblHeader.set(qn("w:val"), "true")
-    trPr.append(tblHeader)
+    tr_pr = row._tr.get_or_add_trPr()
+    tbl_header = OxmlElement("w:tblHeader")
+    tbl_header.set(qn("w:val"), "true")
+    tr_pr.append(tbl_header)
 
 
-# ============================================================
-# 列宽计算
-# ============================================================
-
-PAD = 0.46    # Word 单元格左右边距+边框合计
-SAFETY = 0.08  # 列宽安全余量，避免渲染差异导致折行
+PAD = 0.46
+SAFETY = 0.08
 
 
-def text_display_width_cm(text):
-    """估算文字单行显示宽度（cm），基于表格文 10.5pt 字号。
-    已含 Word 单元格左右边距（各 0.19cm）和边框（约 0.04cm）。"""
-    w = PAD
+def text_display_width_cm(text: str) -> float:
+    width = PAD
     for ch in text:
-        if ord(ch) > 127:
-            w += 0.38
-        else:
-            w += 0.25
-    return w
+        width += 0.38 if ord(ch) > 127 else 0.25
+    return width
 
 
 def calc_col_widths(header, data_rows):
-    """按内容单行显示宽度计算列宽，总和 = PAGE_W。
-    原则：每列刚好够放最长内容的一行；放不下时才允许折行。"""
     cols = len(header)
-
-    # 1. 计算每列最长内容的单行宽度
     need = []
-    for c in range(cols):
-        texts = [header[c]]
-        for row in data_rows:
-            if c < len(row):
-                texts.append(row[c])
-        max_cm = max(text_display_width_cm(t) for t in texts)
-        need.append(max(0.3, max_cm + SAFETY))
+    short_cols = set()
+    for col in range(cols):
+        texts = [header[col]] + [row[col] for row in data_rows if col < len(row)]
+        need.append(max(0.3, max(text_display_width_cm(text) for text in texts) + SAFETY))
+        if max(len(text) for text in texts) <= 6:
+            short_cols.add(col)
 
     total_need = sum(need)
-
-    # 短列（最长内容 <= 6 个字符）必须保持一行宽度
-    short_cols = set()
-    for c in range(cols):
-        texts = [header[c]]
-        for row in data_rows:
-            if c < len(row):
-                texts.append(row[c])
-        max_len = max(len(t) for t in texts)
-        if max_len <= 6:
-            short_cols.add(c)
-
     if total_need <= PAGE_W:
-        # 所有列都能一行放下，表格按内容宽度，不强行铺满页面
         widths = list(need)
     else:
-        # 超出页面：先保证短列不折行，剩余空间分给长列
-        short_total = sum(need[c] for c in short_cols)
-        long_cols = [c for c in range(cols) if c not in short_cols]
-        long_total_need = sum(need[c] for c in long_cols)
-        available_for_long = PAGE_W - short_total
-
+        short_total = sum(need[col] for col in short_cols)
+        long_cols = [col for col in range(cols) if col not in short_cols]
+        available = PAGE_W - short_total
         widths = [0.0] * cols
-        for c in short_cols:
-            widths[c] = need[c]
-
-        if available_for_long <= 0:
-            # 连短列都放不下，按比例压缩所有列
+        if available <= 0 or not long_cols:
             ratio = PAGE_W / total_need
-            widths = [n * ratio for n in need]
-        elif available_for_long >= long_total_need:
-            # 长列也能全放下
-            for c in long_cols:
-                widths[c] = need[c]
+            widths = [value * ratio for value in need]
         else:
-            # 长列需要压缩，从最宽的开始压缩
-            long_sorted = sorted(long_cols, key=lambda i: need[i], reverse=True)
-            remaining = available_for_long
-            for idx in long_sorted:
-                min_w = text_display_width_cm(header[idx])
-                ideal = need[idx] / long_total_need * available_for_long
-                widths[idx] = max(min_w, ideal)
-                remaining -= widths[idx]
-            # 修正舍入
-            if abs(remaining) > 0.01:
-                max_long = long_sorted[0]
-                widths[max_long] += remaining
+            for col in short_cols:
+                widths[col] = need[col]
+            long_total = sum(need[col] for col in long_cols)
+            for col in long_cols:
+                minimum = min(text_display_width_cm(header[col]), max(0.8, available / len(long_cols)))
+                widths[col] = max(minimum, need[col] / long_total * available)
+            used = sum(widths)
+            if used > PAGE_W:
+                flexible = sum(widths[col] for col in long_cols)
+                target = max(0.1, PAGE_W - sum(widths[col] for col in short_cols))
+                ratio = target / flexible
+                for col in long_cols:
+                    widths[col] *= ratio
 
-    widths = [round(w, 2) for w in widths]
-
-    # 仅在表格需要撑满页面时做舍入对齐，紧凑表格不强制对齐
-    if total_need > PAGE_W:
-        diff = round(PAGE_W - sum(widths), 2)
-        if abs(diff) > 0.01:
-            max_idx = widths.index(max(widths))
-            widths[max_idx] = round(widths[max_idx] + diff, 2)
-
+    widths = [round(value, 2) for value in widths]
+    if sum(widths) > PAGE_W + 0.01:
+        ratio = PAGE_W / sum(widths)
+        widths = [round(value * ratio, 2) for value in widths]
     return widths
 
 
-def get_caption_before(lines, idx, prefix):
-    """从 idx 位置向前查找形如 '表 N-N 名称' 或 '图 N-N 名称' 的题注行。
-    返回题注名称部分（去掉 '表/图 N-N' 前缀），未找到返回空字符串。"""
-    j = idx - 1
-    while j >= 0:
-        s = lines[j].strip()
-        if not s:
-            j -= 1
+def get_caption_before(lines, idx: int, prefix: str) -> str:
+    pos = idx - 1
+    while pos >= 0:
+        text = lines[pos].strip()
+        if not text:
+            pos -= 1
             continue
-        m = re.match(r"^" + prefix + r"\s*\d+[\-\.]\d+\s*(.*)", s)
-        if m:
-            return m.group(1).strip()
-        break
+        match = re.match(r"^" + prefix + r"\s*\d+[\-.]\d+\s*(.*)", text)
+        return match.group(1).strip() if match else ""
     return ""
 
 
-# ============================================================
-# 解析与写入
-# ============================================================
+def resolve_asset(raw_path: str, asset_dir: Path) -> Path:
+    cleaned = raw_path.strip().strip('"').strip("'")
+    candidate = Path(cleaned)
+    return candidate if candidate.is_absolute() else (asset_dir / candidate).resolve()
 
-def parse_and_write(md_path, doc):
-    """解析 Markdown 并写入 Word 文档。"""
-    text = Path(md_path).read_text(encoding="utf-8")
-    lines = text.split("\n")
 
-    mermaid_counter = [0]
-    mermaid_files = [MERMAID_SYS, MERMAID_FPGA]
-    mermaid_captions = ["系统总体框图", "FPGA 整体设计导图"]
+def add_image(doc, image_path: Path, caption: str, stats: dict, width_cm: float = 14.0):
+    if image_path.exists() and image_path.is_file() and image_path.stat().st_size > 0:
+        paragraph = doc.add_paragraph()
+        set_paragraph_style(paragraph, doc, "图片")
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.add_run().add_picture(str(image_path), width=Cm(min(width_cm, PAGE_W)))
+        stats["images"] += 1
+    else:
+        paragraph = doc.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = add_run_with_font(paragraph, f"[缺失图片：{image_path.name}]", size=Pt(9))
+        run.font.color.rgb = RGBColor(128, 128, 128)
+        stats["missing_assets"].append(str(image_path))
+
+    if caption:
+        cap = doc.add_paragraph()
+        set_paragraph_style(cap, doc, "Caption")
+        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        add_run_with_font(cap, "图", size=Pt(10.5))
+        insert_seq_field(cap, "Figure")
+        add_run_with_font(cap, f"-{caption}", size=Pt(10.5))
+        stats["figure_captions"] += 1
+
+
+def parse_and_write(
+    md_path: Path,
+    doc,
+    *,
+    asset_dir: Path,
+    mermaid_images: list[Path],
+    strip_heading_numbering: bool = True,
+    chapter_page_breaks: bool = True,
+):
+    text = md_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    stats = {
+        "headings": 0,
+        "paragraphs": 0,
+        "tables": 0,
+        "images": 0,
+        "figure_captions": 0,
+        "table_captions": 0,
+        "code_blocks": 0,
+        "reference_entries": 0,
+        "missing_assets": [],
+    }
 
     i = 0
-    is_first_heading = True
+    first_heading = True
     in_references = False
+    mermaid_index = 0
+
     while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-
-        if not stripped:
+        stripped = lines[i].strip()
+        if not stripped or stripped == "---":
             i += 1
             continue
 
-        if stripped == "---":
+        if CAPTION_RE.match(stripped):
             i += 1
             continue
 
-        # 跳过表/图题注行（已由表格/图块处理器消费）
-        if re.match(r"^(表|图)\s*\d+[\-\.]\d+\s*\S", stripped):
-            i += 1
-            continue
-
-        # 标题
-        heading_match = re.match(r"^(#{1,3})\s+(.*)", stripped)
+        heading_match = re.match(r"^(#{1,6})\s+(.*)", stripped)
         if heading_match:
-            level = len(heading_match.group(1))
+            level = min(len(heading_match.group(1)), 3)
             heading_text = heading_match.group(2).strip()
-            heading_text = re.sub(r"^\d+(\.\d+)*\.?\s*", "", heading_text)
-
-            if level == 1 and not is_first_heading:
+            if strip_heading_numbering:
+                heading_text = re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", heading_text)
+            if level == 1 and chapter_page_breaks and not first_heading:
                 add_page_break(doc)
-            is_first_heading = False
-
-            h = doc.add_heading(heading_text, level=level)
-            for run in h.runs:
-                run.font.name = "Times New Roman"
-                rPr = run._element.get_or_add_rPr()
-                rFonts = rPr.get_or_add_rFonts()
-                rFonts.set(qn("w:eastAsia"), "宋体")
+            first_heading = False
+            heading = doc.add_heading(heading_text, level=level)
+            for run in heading.runs:
+                set_run_font(run)
             in_references = bool(re.search(r"(参考文献|references)", heading_text, re.I))
+            stats["headings"] += 1
             i += 1
             continue
 
-        # 代码块
+        image_match = IMAGE_RE.match(stripped)
+        if image_match:
+            caption = image_match.group(1).strip()
+            image_path = resolve_asset(image_match.group(2), asset_dir)
+            add_image(doc, image_path, caption, stats)
+            i += 1
+            continue
+
         if stripped.startswith("```"):
-            code_block_start = i
             lang = stripped[3:].strip().lower()
             code_lines = []
             i += 1
             while i < len(lines) and not lines[i].strip().startswith("```"):
                 code_lines.append(lines[i])
                 i += 1
-            i += 1  # i 现在指向代码块之后的第一行
+            if i < len(lines):
+                i += 1
 
-            if lang == "mermaid" and mermaid_counter[0] < len(mermaid_files):
-                idx = mermaid_counter[0]
-                png_path = mermaid_files[idx]
-                mermaid_counter[0] += 1
-
-                # 从代码块之后的位置向后查找 '图 X-X 名称' 行
-                fig_cap_name = ""
-                fig_cap_line = -1
-                for j in range(i, min(i + 5, len(lines))):
-                    m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
-                    if m:
-                        fig_cap_name = m.group(1).strip()
-                        fig_cap_line = j
+            if lang == "mermaid":
+                caption = ""
+                caption_line = -1
+                for pos in range(i, min(i + 5, len(lines))):
+                    match = re.match(r"^图\s*\d+[\-.]\d+\s*(.*)", lines[pos].strip())
+                    if match:
+                        caption = match.group(1).strip()
+                        caption_line = pos
                         break
-                if not fig_cap_name and idx < len(mermaid_captions):
-                    fig_cap_name = mermaid_captions[idx]
-
-                if os.path.exists(png_path) and os.path.getsize(png_path) > 100:
-                    p_img = doc.add_paragraph()
-                    p_img.style = doc.styles["图片"]
-                    run = p_img.add_run()
-                    run.add_picture(png_path, width=Cm(14))
-                else:
-                    p_img = doc.add_paragraph()
-                    p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    add_run_with_font(p_img, "[占位图示：待替换为正式插图]", size=Pt(9))
-
-                # 图题注（下方）：图 + SEQ + 题注名称
-                p_cap = doc.add_paragraph()
-                p_cap.style = doc.styles["Caption"]
-                add_run_with_font(p_cap, "图", size=Pt(10.5))
-                insert_seq_field(p_cap, "Figure")
-                if fig_cap_name:
-                    add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
-
-                # 跳过已被消费的 '图 X-X 名称' 行
-                if fig_cap_line >= 0:
-                    i = fig_cap_line + 1
+                image_path = mermaid_images[mermaid_index] if mermaid_index < len(mermaid_images) else Path(f"mermaid_{mermaid_index + 1}.png")
+                mermaid_index += 1
+                add_image(doc, image_path, caption, stats)
+                if caption_line >= 0:
+                    i = caption_line + 1
             else:
-                p = doc.add_paragraph()
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = add_run_with_font(p, "[此处为占位内容]", size=Pt(9))
-                run.font.color.rgb = RGBColor(128, 128, 128)
+                paragraph = doc.add_paragraph()
+                set_paragraph_style(paragraph, doc, "No Spacing")
+                for idx, code_line in enumerate(code_lines):
+                    run = paragraph.add_run(code_line + ("\n" if idx < len(code_lines) - 1 else ""))
+                    set_run_font(run, cn_font="等线", en_font="Courier New", size=Pt(9))
+                stats["code_blocks"] += 1
             continue
 
-        # 表格
         if stripped.startswith("|") and "|" in stripped[1:]:
-            table_start_i = i
+            table_start = i
             table_lines = []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 table_lines.append(lines[i].strip())
                 i += 1
+            if len(table_lines) < 2:
+                continue
 
-            if len(table_lines) >= 3:
-                header = [c.strip() for c in table_lines[0].split("|")[1:-1]]
-                data_rows = []
-                for tl in table_lines[2:]:
-                    row = [c.strip() for c in tl.split("|")[1:-1]]
-                    data_rows.append(row)
+            header = [cell.strip() for cell in table_lines[0].split("|")[1:-1]]
+            data_start = 2 if len(table_lines) >= 2 and re.match(r"^\|?\s*:?-+", table_lines[1]) else 1
+            data_rows = [[cell.strip() for cell in row.split("|")[1:-1]] for row in table_lines[data_start:]]
+            if not header:
+                continue
 
-                # 如果表头全为空，把第一行数据提升为表头
-                if all(not h for h in header) and data_rows:
-                    header = data_rows[0]
-                    data_rows = data_rows[1:]
-                    if not data_rows:
-                        continue
+            caption = get_caption_before(lines, table_start, "表")
+            cap = doc.add_paragraph()
+            set_paragraph_style(cap, doc, "Caption")
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            add_run_with_font(cap, "表", size=Pt(10.5))
+            insert_seq_field(cap, "Table")
+            if caption:
+                add_run_with_font(cap, f"-{caption}", size=Pt(10.5))
+            stats["table_captions"] += 1
 
-                # 表题注（在表上方）：表 + SEQ + 题注名称
-                cap_name = get_caption_before(lines, table_start_i, "表")
-                p_cap = doc.add_paragraph()
-                p_cap.style = doc.styles["Caption"]
-                add_run_with_font(p_cap, "表", size=Pt(10.5))
-                insert_seq_field(p_cap, "Table")
-                if cap_name:
-                    add_run_with_font(p_cap, f"-{cap_name}", size=Pt(10.5))
-
-                # 计算列宽
-                col_widths = calc_col_widths(header, data_rows)
-
-                # 创建表格
-                cols = len(header)
-                table = doc.add_table(rows=1 + len(data_rows), cols=cols, style="Table Grid")
-                table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                table.autofit = False
-
-                # 设置列宽
-                set_table_col_widths(table, col_widths)
-
-                # 表头行
-                for c_idx, text in enumerate(header):
-                    set_cell_paragraph(table.rows[0].cells[c_idx], text)
-                repeat_table_header(table.rows[0])
-
-                # 数据行
-                for r_idx, row_data in enumerate(data_rows):
-                    for c_idx, text in enumerate(row_data):
-                        if c_idx < cols:
-                            set_cell_paragraph(table.rows[r_idx + 1].cells[c_idx], text)
-
-                doc.add_paragraph()  # 表后空行
+            table = doc.add_table(rows=1 + len(data_rows), cols=len(header), style="Table Grid")
+            table.alignment = WD_TABLE_ALIGNMENT.CENTER
+            table.autofit = False
+            set_table_col_widths(table, calc_col_widths(header, data_rows))
+            for col, value in enumerate(header):
+                set_cell_paragraph(table.rows[0].cells[col], value)
+            repeat_table_header(table.rows[0])
+            for row_idx, row_data in enumerate(data_rows, 1):
+                for col_idx, value in enumerate(row_data[: len(header)]):
+                    set_cell_paragraph(table.rows[row_idx].cells[col_idx], value)
+            stats["tables"] += 1
             continue
 
-        # 参考文献条目：为编号建立书签，正文 [n] 用 REF 域交叉引用到这里。
         ref_match = re.match(r"^\[(\d+)\]\s*(.*)", stripped)
         if ref_match:
-            p = doc.add_paragraph()
-            add_bookmarked_reference_label(p, ref_match.group(1))
-            add_runs_with_reference_fields(p, ref_match.group(2))
+            paragraph = doc.add_paragraph()
+            add_bookmarked_reference_label(paragraph, ref_match.group(1))
+            add_runs_with_reference_fields(paragraph, ref_match.group(2))
+            stats["reference_entries"] += 1
             i += 1
             continue
 
-        # 无序列表
-        list_match = re.match(r"^[-*]\s+(.*)", stripped)
-        if list_match:
+        unordered_match = re.match(r"^[-*]\s+(.*)", stripped)
+        if unordered_match:
             while i < len(lines):
-                lm = re.match(r"^[-*]\s+(.*)", lines[i].strip())
-                if lm:
-                    p = doc.add_paragraph(style="List Paragraph")
-                    add_runs_with_reference_fields(p, lm.group(1))
-                    i += 1
-                else:
+                match = re.match(r"^[-*]\s+(.*)", lines[i].strip())
+                if not match:
                     break
+                paragraph = doc.add_paragraph()
+                set_paragraph_style(paragraph, doc, "List Paragraph")
+                add_run_with_font(paragraph, "• ")
+                add_runs_with_reference_fields(paragraph, match.group(1))
+                stats["paragraphs"] += 1
+                i += 1
             continue
 
-        # 有序列表
         ordered_match = re.match(r"^(\d+)\.\s+(.*)", stripped)
         if ordered_match:
             while i < len(lines):
-                om = re.match(r"^(\d+)\.\s+(.*)", lines[i].strip())
-                if om:
-                    if in_references:
-                        p = doc.add_paragraph()
-                        add_bookmarked_reference_label(p, om.group(1))
-                        add_runs_with_reference_fields(p, om.group(2))
-                    else:
-                        p = doc.add_paragraph(style="List Paragraph")
-                        add_runs_with_reference_fields(p, f"（{om.group(1)}）{om.group(2)}")
-                    i += 1
-                else:
+                match = re.match(r"^(\d+)\.\s+(.*)", lines[i].strip())
+                if not match:
                     break
+                paragraph = doc.add_paragraph()
+                if in_references:
+                    add_bookmarked_reference_label(paragraph, match.group(1))
+                    add_runs_with_reference_fields(paragraph, match.group(2))
+                    stats["reference_entries"] += 1
+                else:
+                    set_paragraph_style(paragraph, doc, "List Paragraph")
+                    add_runs_with_reference_fields(paragraph, f"（{match.group(1)}）{match.group(2)}")
+                    stats["paragraphs"] += 1
+                i += 1
             continue
 
-        # ASCII 流程图
-        if stripped.startswith("+") and stripped.endswith("+"):
-            block_lines = []
-            while i < len(lines):
-                s = lines[i].strip()
-                if s.startswith("+"):
-                    block_lines.append(lines[i])
-                    i += 1
-                elif s.startswith("|") and block_lines:
-                    block_lines.append(lines[i])
-                    i += 1
-                else:
-                    break
-            if len(block_lines) > 2:
-                p = doc.add_paragraph()
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = add_run_with_font(p, "[占位图示：待替换为正式插图]", size=Pt(9))
-                run.font.color.rgb = RGBColor(128, 128, 128)
-
-                # 查找 ASCII 块之后的 '图 X-X 名称' 行并生成题注
-                fig_cap_name = ""
-                fig_cap_line = -1
-                for j in range(i, min(i + 5, len(lines))):
-                    m = re.match(r"^图\s*\d+[\-\.]\d+\s*(.*)", lines[j].strip())
-                    if m:
-                        fig_cap_name = m.group(1).strip()
-                        fig_cap_line = j
-                        break
-                if fig_cap_name:
-                    p_cap = doc.add_paragraph()
-                    p_cap.style = doc.styles["Caption"]
-                    add_run_with_font(p_cap, "图", size=Pt(10.5))
-                    insert_seq_field(p_cap, "Figure")
-                    add_run_with_font(p_cap, f"-{fig_cap_name}", size=Pt(10.5))
-                    i = fig_cap_line + 1
-            continue
-
-        # 普通段落
-        p = doc.add_paragraph()
-        p.paragraph_format.first_line_indent = Cm(1.56)
-        add_runs_with_reference_fields(p, stripped)
+        paragraph = doc.add_paragraph()
+        paragraph.paragraph_format.first_line_indent = Cm(0.74)
+        add_runs_with_reference_fields(paragraph, stripped)
+        stats["paragraphs"] += 1
         i += 1
 
-    return doc
+    return stats
 
 
-# ============================================================
-# 主流程
-# ============================================================
+def validate_output(output_path: Path, expected_stats: dict) -> dict:
+    reopened = Document(str(output_path))
+    heading_count = sum(1 for p in reopened.paragraphs if p.style and p.style.name.startswith("Heading"))
+    result = {
+        "docx_reopen": True,
+        "paragraph_count": len(reopened.paragraphs),
+        "table_count": len(reopened.tables),
+        "image_count": len(reopened.inline_shapes),
+        "heading_count": heading_count,
+        "checks": {
+            "tables_preserved": len(reopened.tables) == expected_stats["tables"],
+            "images_preserved": len(reopened.inline_shapes) == expected_stats["images"],
+        },
+    }
+    result["pass"] = all(result["checks"].values())
+    return result
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Convert Markdown to template-aware DOCX")
+    parser.add_argument("-i", "--input", required=True, help="input Markdown file")
+    parser.add_argument("-o", "--output", required=True, help="output .docx path")
+    parser.add_argument("-t", "--template", help="optional .docx/.dotx template")
+    parser.add_argument("--asset-dir", help="base directory for relative Markdown image paths; defaults to input directory")
+    parser.add_argument("--mermaid-image", action="append", default=[], help="rendered Mermaid image in document order; repeat for multiple diagrams")
+    parser.add_argument("--page-width-cm", type=float, default=14.66, help="usable page width for tables/images")
+    parser.add_argument("--keep-heading-numbering", action="store_true", help="do not strip manual numeric prefixes from headings")
+    parser.add_argument("--no-chapter-page-breaks", action="store_true", help="do not insert page breaks before level-1 chapters")
+    parser.add_argument("--strict-assets", action="store_true", help="fail when an image asset is missing")
+    parser.add_argument("--report", help="optional JSON validation report path")
+    return parser
+
+
+def main() -> int:
+    global PAGE_W
+    args = build_parser().parse_args()
+    input_path = Path(args.input).expanduser().resolve()
+    output_path = Path(args.output).expanduser().resolve()
+    template_path = Path(args.template).expanduser().resolve() if args.template else None
+    asset_dir = Path(args.asset_dir).expanduser().resolve() if args.asset_dir else input_path.parent
+    mermaid_images = [Path(path).expanduser().resolve() for path in args.mermaid_image]
+
+    if not input_path.is_file() or input_path.suffix.lower() not in {".md", ".markdown"}:
+        raise SystemExit(f"invalid Markdown input: {input_path}")
+    if output_path.suffix.lower() != ".docx":
+        raise SystemExit("output must end with .docx")
+    if template_path and not template_path.is_file():
+        raise SystemExit(f"template not found: {template_path}")
+    if args.page_width_cm <= 0:
+        raise SystemExit("--page-width-cm must be positive")
+
+    PAGE_W = args.page_width_cm
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    doc = load_document(template_path)
+    stats = parse_and_write(
+        input_path,
+        doc,
+        asset_dir=asset_dir,
+        mermaid_images=mermaid_images,
+        strip_heading_numbering=not args.keep_heading_numbering,
+        chapter_page_breaks=not args.no_chapter_page_breaks,
+    )
+
+    if args.strict_assets and stats["missing_assets"]:
+        raise SystemExit("missing assets: " + ", ".join(stats["missing_assets"]))
+
+    doc.save(str(output_path))
+    validation = validate_output(output_path, stats)
+    report = {
+        "input": str(input_path),
+        "template": str(template_path) if template_path else None,
+        "output": str(output_path),
+        "stats": stats,
+        "validation": validation,
+    }
+
+    if args.report:
+        report_path = Path(args.report).expanduser().resolve()
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if validation["pass"] else 2
+
 
 if __name__ == "__main__":
-    print("加载模板...")
-    doc = load_template_as_docx(TEMPLATE_SRC)
-
-    print("解析 Markdown 并写入 Word...")
-    parse_and_write(MD_PATH, doc)
-
-    print(f"保存到 {OUT_PATH}...")
-    doc.save(OUT_PATH)
-    print(f"完成: {OUT_PATH}")
+    raise SystemExit(main())
