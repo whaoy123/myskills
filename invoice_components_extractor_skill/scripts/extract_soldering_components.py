@@ -79,7 +79,6 @@ def location_label(record: dict[str, Any]) -> str:
 
 def classify_decision(name: str, model: str = "", raw_text: str = "", qty: float | None = None) -> tuple[str, str]:
     text = normalize_space(f"{name} {model} {raw_text}").lower()
-
     if qty is not None and qty < 0:
         return "exclude", "negative_quantity_or_discount"
     if re.search(r"(?:^|\s)-\d+(?:\.\d+)?(?:\s|$)", raw_text):
@@ -129,11 +128,12 @@ def infer_package(name: str, model: str = "") -> str:
             return formatter(match)
 
     if any(key in text for key in ["端子", "接线", "连接器"]):
-        pitch = re.search(r"(?<!\d)(\d+(?:\.\d+)?)(?:\s*mm)?(?!\d)", text, re.I)
-        if pitch:
-            value = float(pitch.group(1))
+        decimal_candidates = re.findall(r"(?<!\d)(\d{1,2}\.\d+)(?:\s*mm)?(?!\d)", text, re.I)
+        explicit_mm = re.findall(r"(?<!\d)(\d{1,2})(?:\s*mm)(?!\d)", text, re.I)
+        for candidate in decimal_candidates + explicit_mm:
+            value = float(candidate)
             if 2.0 <= value <= 20.0:
-                return f"间距 {pitch.group(1)} mm (THT)"
+                return f"间距 {candidate} mm (THT)"
     if any(key in text.lower() for key in ["插件", "直插", "tht", "axial"]):
         return "THT"
     if any(key in text.lower() for key in ["贴片", "smd", "smt"]):
@@ -145,9 +145,9 @@ def infer_package(name: str, model: str = "") -> str:
 
 def clean_model(name: str, model: str) -> str:
     candidate = normalize_space(model)
-    if candidate:
-        return re.sub(r"^\*[^*]+\*", "", candidate).strip()
-    return re.sub(r"^\*[^*]+\*", "", normalize_space(name)).strip()
+    if not candidate:
+        return ""
+    return re.sub(r"^\*[^*]+\*", "", candidate).strip()
 
 
 def finalize_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -166,35 +166,22 @@ def parse_pdf_line(line: str, source_file: str, page_no: int, line_no: int) -> d
     raw = normalize_space(line)
     if not raw.startswith("*"):
         return None
-
     base = {
-        "source_file": source_file,
-        "source_type": "pdf",
-        "source_page": page_no,
-        "source_sheet": "",
-        "source_row": line_no,
-        "raw_text": raw,
-        "name": "",
-        "model": "",
-        "qty": None,
-        "unit": "",
+        "source_file": source_file, "source_type": "pdf", "source_page": page_no, "source_sheet": "",
+        "source_row": line_no, "raw_text": raw, "name": "", "model": "", "qty": None, "unit": "",
     }
-
     pre_decision, pre_reason = classify_decision(raw, raw_text=raw)
     if pre_decision == "exclude":
         base.update({"name": raw, "decision": "exclude", "reason": pre_reason, "category": "", "package": "", "normalized_model": ""})
         return base
-
     parts = raw.split()
     if len(parts) < 6:
         base.update({"name": raw, "decision": "review", "reason": "pdf_line_parse_failed", "category": "", "package": "", "normalized_model": ""})
         return base
-
     base["unit"] = parts[-6]
     base["qty"] = to_number(parts[-5])
     base["name"] = parts[0]
     base["model"] = " ".join(parts[1:-6]) if len(parts) > 7 else ""
-
     if base["qty"] is None:
         base.update({"decision": "review", "reason": "pdf_quantity_parse_failed", "category": "", "package": "", "normalized_model": ""})
         return base
@@ -235,7 +222,6 @@ def extract_xlsx(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
         workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     except Exception as exc:
         return [], [f"{path.name}: XLSX read failed: {exc}"]
-
     for sheet in workbook.worksheets:
         rows = list(sheet.iter_rows(values_only=True))
         header_row_idx = None
@@ -257,7 +243,6 @@ def extract_xlsx(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
             if any(any(value not in (None, "") for value in row) for row in rows):
                 warnings.append(f"{path.name}/{sheet.title}: no recognizable invoice header")
             continue
-
         for row_idx, row in enumerate(rows[header_row_idx + 1 :], header_row_idx + 2):
             name_idx = column_map["name"]
             name = normalize_space(row[name_idx]) if name_idx is not None and name_idx < len(row) else ""
@@ -367,25 +352,22 @@ def aggregate_included(records: list[dict[str, Any]], *, merge_across_sources: b
         package = normalize_space(record.get("package"))
         unit = normalize_space(record.get("unit"))
         qty = record.get("qty")
-
         source_scope = "*" if merge_across_sources else normalize_space(record.get("source_file"))
         merge_id = model if model else f"RAW:{name}:{record.get('source_row')}"
         key = (source_scope, record.get("category", ""), merge_id, package, unit)
         if key not in groups:
             groups[key] = {
                 "category": record.get("category", ""), "model": model or name, "package": package,
-                "raw_names": [], "qty": 0.0 if qty is not None else None, "unit": unit,
-                "sources": [], "reasons": [],
+                "raw_names": [], "qty": 0.0 if qty is not None else None, "unit": unit, "sources": [], "reasons": [],
             }
         group = groups[key]
         if qty is not None and group["qty"] is not None:
             group["qty"] += float(qty)
         else:
             group["qty"] = None
-        group["raw_names"].append(normalize_space(record.get("name")))
+        group["raw_names"].append(name)
         group["sources"].append(f"{record.get('source_file')}:{location_label(record)}")
         group["reasons"].append(record.get("reason", ""))
-
     output = []
     for group in groups.values():
         group["raw_name"] = "；".join(dict.fromkeys(value for value in group.pop("raw_names") if value))
@@ -444,7 +426,6 @@ def write_xlsx(path: Path, components: list[dict[str, Any]], review: list[dict[s
     for idx, item in enumerate(components, 1):
         ws.append([idx, item["category"], item["model"], item["package"], item["raw_name"], item["qty"], item["unit"], item["source"], item["decision_basis"]])
     style_sheet(ws, [8, 14, 32, 22, 34, 10, 8, 36, 24])
-
     review_ws = workbook.create_sheet("待复核")
     review_ws.append(["来源文件", "位置", "原始文本", "名称", "型号 / 规格", "数量", "单位", "复核原因"])
     for item in review:
@@ -477,7 +458,6 @@ def export_outputs(
     records, warnings, processed = extract_records(input_path)
     if not processed:
         raise ValueError("no supported PDF/XLSX/CSV invoice files found")
-
     included = [record for record in records if record.get("decision") == "include"]
     excluded = [record for record in records if record.get("decision") == "exclude"]
     review = [record for record in records if record.get("decision") == "review"]
@@ -489,7 +469,6 @@ def export_outputs(
     review_csv = output_dir / "review.csv"
     normalized_csv = output_dir / "normalized_records.csv"
     report_path = output_dir / "validation_report.json"
-
     write_csv(components_csv, ["category", "model", "package", "raw_name", "qty", "unit", "source", "decision_basis"], components)
     write_csv(review_csv, ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "reason"], review)
     write_csv(normalized_csv, ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "decision", "reason", "category", "package", "normalized_model"], records)
@@ -500,11 +479,8 @@ def export_outputs(
 
     xlsx_validation = validate_xlsx(xlsx_path, len(components), len(review))
     report = {
-        "input": str(input_path),
-        "processed_files": processed,
-        "source_warnings": warnings,
-        "has_source_warnings": bool(warnings),
-        "aggregation": {"merge_across_sources": merge_across_sources},
+        "input": str(input_path), "processed_files": processed, "source_warnings": warnings,
+        "has_source_warnings": bool(warnings), "aggregation": {"merge_across_sources": merge_across_sources},
         "counts": {
             "normalized_records": len(records), "included_records": len(included), "excluded_records": len(excluded),
             "review_records": len(review), "aggregated_components": len(components),
@@ -521,17 +497,14 @@ def export_outputs(
 
 
 def is_soldering_component(name: str, model: str = "") -> bool:
-    """Compatibility helper: only definite include returns True."""
     return classify_decision(name, model)[0] == "include"
 
 
 def classify_component(name: str, model: str = ""):
-    """Compatibility helper retained for older callers/tests."""
     return infer_category(name, model), clean_model(name, model), infer_package(name, model), normalize_space(f"{name} {model}")
 
 
 def extract_soldering_components(invoices_dir, output_xlsx=None):
-    """Compatibility wrapper around the traceable workflow."""
     input_path = Path(invoices_dir).expanduser().resolve()
     output_path = Path(output_xlsx).expanduser().resolve() if output_xlsx else None
     output_dir = output_path.parent if output_path else (input_path / "components_output" if input_path.is_dir() else input_path.parent / "components_output")
@@ -567,18 +540,13 @@ def main() -> int:
     else:
         output_dir = input_path.parent / "components_output"
     markdown_path = Path(args.markdown).expanduser().resolve() if args.markdown else None
-
     try:
         report = export_outputs(
-            input_path,
-            output_dir,
-            markdown_path=markdown_path,
-            output_xlsx=output_xlsx,
+            input_path, output_dir, markdown_path=markdown_path, output_xlsx=output_xlsx,
             merge_across_sources=args.merge_across_sources,
         )
     except Exception as exc:
         raise SystemExit(f"extraction failed: {exc}") from exc
-
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["pass"] else 2
 
