@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 """Extract purchased solderable electronic components from invoice data.
 
-The workflow is intentionally conservative:
+Workflow:
 1. normalize source rows from PDF/XLSX/CSV;
 2. classify every row as include/exclude/review;
 3. aggregate only records that are safe to merge;
 4. write traceable CSV/XLSX outputs and a validation report.
 
-This script describes what appears in procurement evidence. It does not decide
-what a PCB actually requires; BOM/netlist/schematic reconciliation belongs to
-the downstream soldering-table workflow.
+This script describes procurement evidence. It does not decide what a PCB
+actually requires; BOM/netlist/schematic reconciliation belongs downstream.
 """
 
 from __future__ import annotations
@@ -19,12 +18,11 @@ import argparse
 import csv
 import json
 import re
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-import pdfplumber
 import openpyxl
+import pdfplumber
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 
@@ -129,10 +127,14 @@ def infer_package(name: str, model: str = "") -> str:
         match = re.search(pattern, text, re.I)
         if match:
             return formatter(match)
-    pitch = re.search(r"(\d+(?:\.\d+)?)\s*mm", text, re.I)
-    if pitch and any(key in text for key in ["端子", "接线", "连接器"]):
-        return f"间距 {pitch.group(1)} mm (THT)"
-    if any(key in text for key in ["插件", "直插", "tht", "axial"]):
+
+    if any(key in text for key in ["端子", "接线", "连接器"]):
+        pitch = re.search(r"(?<!\d)(\d+(?:\.\d+)?)(?:\s*mm)?(?!\d)", text, re.I)
+        if pitch:
+            value = float(pitch.group(1))
+            if 2.0 <= value <= 20.0:
+                return f"间距 {pitch.group(1)} mm (THT)"
+    if any(key in text.lower() for key in ["插件", "直插", "tht", "axial"]):
         return "THT"
     if any(key in text.lower() for key in ["贴片", "smd", "smt"]):
         return "SMD"
@@ -150,10 +152,7 @@ def clean_model(name: str, model: str) -> str:
 
 def finalize_record(record: dict[str, Any]) -> dict[str, Any]:
     decision, reason = classify_decision(
-        record.get("name", ""),
-        record.get("model", ""),
-        record.get("raw_text", ""),
-        record.get("qty"),
+        record.get("name", ""), record.get("model", ""), record.get("raw_text", ""), record.get("qty")
     )
     record["decision"] = decision
     record["reason"] = reason
@@ -168,7 +167,6 @@ def parse_pdf_line(line: str, source_file: str, page_no: int, line_no: int) -> d
     if not raw.startswith("*"):
         return None
 
-    parts = raw.split()
     base = {
         "source_file": source_file,
         "source_type": "pdf",
@@ -182,27 +180,23 @@ def parse_pdf_line(line: str, source_file: str, page_no: int, line_no: int) -> d
         "unit": "",
     }
 
-    if len(parts) < 6:
-        base["name"] = raw
-        base["decision"] = "review"
-        base["reason"] = "pdf_line_parse_failed"
-        base["category"] = ""
-        base["package"] = ""
-        base["normalized_model"] = ""
+    pre_decision, pre_reason = classify_decision(raw, raw_text=raw)
+    if pre_decision == "exclude":
+        base.update({"name": raw, "decision": "exclude", "reason": pre_reason, "category": "", "package": "", "normalized_model": ""})
         return base
 
-    qty = to_number(parts[-5])
+    parts = raw.split()
+    if len(parts) < 6:
+        base.update({"name": raw, "decision": "review", "reason": "pdf_line_parse_failed", "category": "", "package": "", "normalized_model": ""})
+        return base
+
     base["unit"] = parts[-6]
-    base["qty"] = qty
+    base["qty"] = to_number(parts[-5])
     base["name"] = parts[0]
     base["model"] = " ".join(parts[1:-6]) if len(parts) > 7 else ""
 
-    if qty is None and not any(keyword in raw for keyword in FEE_KEYWORDS):
-        base["decision"] = "review"
-        base["reason"] = "pdf_quantity_parse_failed"
-        base["category"] = ""
-        base["package"] = ""
-        base["normalized_model"] = ""
+    if base["qty"] is None:
+        base.update({"decision": "review", "reason": "pdf_quantity_parse_failed", "category": "", "package": "", "normalized_model": ""})
         return base
     return finalize_record(base)
 
@@ -260,11 +254,13 @@ def extract_xlsx(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
                 }
                 break
         if header_row_idx is None:
-            warnings.append(f"{path.name}/{sheet.title}: no recognizable invoice header")
+            if any(any(value not in (None, "") for value in row) for row in rows):
+                warnings.append(f"{path.name}/{sheet.title}: no recognizable invoice header")
             continue
 
         for row_idx, row in enumerate(rows[header_row_idx + 1 :], header_row_idx + 2):
-            name = normalize_space(row[column_map["name"]]) if column_map["name"] is not None and column_map["name"] < len(row) else ""
+            name_idx = column_map["name"]
+            name = normalize_space(row[name_idx]) if name_idx is not None and name_idx < len(row) else ""
             if not name:
                 continue
             model_idx = column_map.get("model")
@@ -275,16 +271,8 @@ def extract_xlsx(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
             qty = to_number(row[qty_idx]) if qty_idx is not None and qty_idx < len(row) else None
             raw = " | ".join(normalize_space(value) for value in row if value not in (None, ""))
             record = {
-                "source_file": path.name,
-                "source_type": "xlsx",
-                "source_page": "",
-                "source_sheet": sheet.title,
-                "source_row": row_idx,
-                "raw_text": raw,
-                "name": name,
-                "model": model,
-                "qty": qty,
-                "unit": unit,
+                "source_file": path.name, "source_type": "xlsx", "source_page": "", "source_sheet": sheet.title,
+                "source_row": row_idx, "raw_text": raw, "name": name, "model": model, "qty": qty, "unit": unit,
             }
             if qty is None:
                 record.update({"decision": "review", "reason": "xlsx_quantity_parse_failed", "category": "", "package": "", "normalized_model": ""})
@@ -312,8 +300,7 @@ def extract_csv(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
     try:
         with path.open("r", encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
-            fieldnames = reader.fieldnames or []
-            columns = resolve_csv_columns(fieldnames)
+            columns = resolve_csv_columns(reader.fieldnames or [])
             if columns["name"] is None or columns["qty"] is None:
                 return [], [f"{path.name}: CSV requires recognizable name and quantity columns"]
             for row_idx, row in enumerate(reader, 2):
@@ -325,16 +312,8 @@ def extract_csv(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
                 qty = to_number(row.get(columns["qty"] or "", ""))
                 raw = " | ".join(f"{key}={normalize_space(value)}" for key, value in row.items())
                 record = {
-                    "source_file": path.name,
-                    "source_type": "csv",
-                    "source_page": "",
-                    "source_sheet": "",
-                    "source_row": row_idx,
-                    "raw_text": raw,
-                    "name": name,
-                    "model": model,
-                    "qty": qty,
-                    "unit": unit,
+                    "source_file": path.name, "source_type": "csv", "source_page": "", "source_sheet": "",
+                    "source_row": row_idx, "raw_text": raw, "name": name, "model": model, "qty": qty, "unit": unit,
                 }
                 if qty is None:
                     record.update({"decision": "review", "reason": "csv_quantity_parse_failed", "category": "", "package": "", "normalized_model": ""})
@@ -378,7 +357,7 @@ def extract_records(input_path: Path) -> tuple[list[dict[str, Any]], list[str], 
     return records, warnings, processed
 
 
-def aggregate_included(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def aggregate_included(records: list[dict[str, Any]], *, merge_across_sources: bool = False) -> list[dict[str, Any]]:
     groups: dict[tuple[str, ...], dict[str, Any]] = {}
     for record in records:
         if record.get("decision") != "include":
@@ -388,18 +367,15 @@ def aggregate_included(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         package = normalize_space(record.get("package"))
         unit = normalize_space(record.get("unit"))
         qty = record.get("qty")
-        merge_id = model if model else f"RAW:{name}:{record.get('source_file')}:{record.get('source_row')}"
-        key = (record.get("category", ""), merge_id, package, unit)
+
+        source_scope = "*" if merge_across_sources else normalize_space(record.get("source_file"))
+        merge_id = model if model else f"RAW:{name}:{record.get('source_row')}"
+        key = (source_scope, record.get("category", ""), merge_id, package, unit)
         if key not in groups:
             groups[key] = {
-                "category": record.get("category", ""),
-                "model": model or name,
-                "package": package,
-                "raw_names": [],
-                "qty": 0.0 if qty is not None else None,
-                "unit": unit,
-                "sources": [],
-                "reasons": [],
+                "category": record.get("category", ""), "model": model or name, "package": package,
+                "raw_names": [], "qty": 0.0 if qty is not None else None, "unit": unit,
+                "sources": [], "reasons": [],
             }
         group = groups[key]
         if qty is not None and group["qty"] is not None:
@@ -418,7 +394,7 @@ def aggregate_included(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if group["qty"] is not None and float(group["qty"]).is_integer():
             group["qty"] = int(group["qty"])
         output.append(group)
-    return sorted(output, key=lambda item: (item["category"], item["model"], item["package"]))
+    return sorted(output, key=lambda item: (item["category"], item["model"], item["package"], item["source"]))
 
 
 def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]):
@@ -430,10 +406,7 @@ def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]):
 
 
 def write_markdown(path: Path, components: list[dict[str, Any]]):
-    lines = [
-        "| 类别 | 型号 / 规格 | 封装 / 安装形式 | 数量 | 单位 | 来源 |",
-        "|---|---|---|---:|---|---|",
-    ]
+    lines = ["| 类别 | 型号 / 规格 | 封装 / 安装形式 | 数量 | 单位 | 来源 |", "|---|---|---|---:|---|---|"]
     for item in components:
         values = [item["category"], item["model"], item["package"], item["qty"], item["unit"], item["source"]]
         escaped = [str(value if value is not None else "").replace("|", "\\|") for value in values]
@@ -467,15 +440,13 @@ def write_xlsx(path: Path, components: list[dict[str, Any]], review: list[dict[s
     workbook = openpyxl.Workbook()
     ws = workbook.active
     ws.title = "元器件清单"
-    component_headers = ["序号", "类别", "型号 / 规格", "封装 / 安装形式", "原始品名", "数量", "单位", "来源", "判定依据"]
-    ws.append(component_headers)
+    ws.append(["序号", "类别", "型号 / 规格", "封装 / 安装形式", "原始品名", "数量", "单位", "来源", "判定依据"])
     for idx, item in enumerate(components, 1):
         ws.append([idx, item["category"], item["model"], item["package"], item["raw_name"], item["qty"], item["unit"], item["source"], item["decision_basis"]])
     style_sheet(ws, [8, 14, 32, 22, 34, 10, 8, 36, 24])
 
     review_ws = workbook.create_sheet("待复核")
-    review_headers = ["来源文件", "位置", "原始文本", "名称", "型号 / 规格", "数量", "单位", "复核原因"]
-    review_ws.append(review_headers)
+    review_ws.append(["来源文件", "位置", "原始文本", "名称", "型号 / 规格", "数量", "单位", "复核原因"])
     for item in review:
         review_ws.append([
             item.get("source_file", ""), location_label(item), item.get("raw_text", ""), item.get("name", ""),
@@ -491,14 +462,18 @@ def validate_xlsx(path: Path, component_count: int, review_count: int) -> dict[s
     component_rows = max(0, workbook["元器件清单"].max_row - 1)
     review_rows = max(0, workbook["待复核"].max_row - 1)
     workbook.close()
-    checks = {
-        "component_rows_match": component_rows == component_count,
-        "review_rows_match": review_rows == review_count,
-    }
+    checks = {"component_rows_match": component_rows == component_count, "review_rows_match": review_rows == review_count}
     return {"component_rows": component_rows, "review_rows": review_rows, "checks": checks, "pass": all(checks.values())}
 
 
-def export_outputs(input_path: Path, output_dir: Path, *, markdown_path: Path | None = None, output_xlsx: Path | None = None) -> dict[str, Any]:
+def export_outputs(
+    input_path: Path,
+    output_dir: Path,
+    *,
+    markdown_path: Path | None = None,
+    output_xlsx: Path | None = None,
+    merge_across_sources: bool = False,
+) -> dict[str, Any]:
     records, warnings, processed = extract_records(input_path)
     if not processed:
         raise ValueError("no supported PDF/XLSX/CSV invoice files found")
@@ -506,7 +481,7 @@ def export_outputs(input_path: Path, output_dir: Path, *, markdown_path: Path | 
     included = [record for record in records if record.get("decision") == "include"]
     excluded = [record for record in records if record.get("decision") == "exclude"]
     review = [record for record in records if record.get("decision") == "review"]
-    components = aggregate_included(records)
+    components = aggregate_included(records, merge_across_sources=merge_across_sources)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     xlsx_path = output_xlsx or output_dir / "components.xlsx"
@@ -515,21 +490,9 @@ def export_outputs(input_path: Path, output_dir: Path, *, markdown_path: Path | 
     normalized_csv = output_dir / "normalized_records.csv"
     report_path = output_dir / "validation_report.json"
 
-    write_csv(
-        components_csv,
-        ["category", "model", "package", "raw_name", "qty", "unit", "source", "decision_basis"],
-        components,
-    )
-    write_csv(
-        review_csv,
-        ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "reason"],
-        review,
-    )
-    write_csv(
-        normalized_csv,
-        ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "decision", "reason", "category", "package", "normalized_model"],
-        records,
-    )
+    write_csv(components_csv, ["category", "model", "package", "raw_name", "qty", "unit", "source", "decision_basis"], components)
+    write_csv(review_csv, ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "reason"], review)
+    write_csv(normalized_csv, ["source_file", "source_type", "source_page", "source_sheet", "source_row", "raw_text", "name", "model", "qty", "unit", "decision", "reason", "category", "package", "normalized_model"], records)
     write_xlsx(xlsx_path, components, review)
     if markdown_path:
         markdown_path.parent.mkdir(parents=True, exist_ok=True)
@@ -540,23 +503,19 @@ def export_outputs(input_path: Path, output_dir: Path, *, markdown_path: Path | 
         "input": str(input_path),
         "processed_files": processed,
         "source_warnings": warnings,
+        "has_source_warnings": bool(warnings),
+        "aggregation": {"merge_across_sources": merge_across_sources},
         "counts": {
-            "normalized_records": len(records),
-            "included_records": len(included),
-            "excluded_records": len(excluded),
-            "review_records": len(review),
-            "aggregated_components": len(components),
+            "normalized_records": len(records), "included_records": len(included), "excluded_records": len(excluded),
+            "review_records": len(review), "aggregated_components": len(components),
         },
         "outputs": {
-            "xlsx": str(xlsx_path),
-            "components_csv": str(components_csv),
-            "review_csv": str(review_csv),
-            "normalized_csv": str(normalized_csv),
-            "markdown": str(markdown_path) if markdown_path else None,
+            "xlsx": str(xlsx_path), "components_csv": str(components_csv), "review_csv": str(review_csv),
+            "normalized_csv": str(normalized_csv), "markdown": str(markdown_path) if markdown_path else None,
         },
         "xlsx_validation": xlsx_validation,
+        "pass": xlsx_validation["pass"],
     }
-    report["pass"] = xlsx_validation["pass"] and not warnings
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report
 
@@ -572,10 +531,10 @@ def classify_component(name: str, model: str = ""):
 
 
 def extract_soldering_components(invoices_dir, output_xlsx=None):
-    """Compatibility wrapper around the new traceable workflow."""
+    """Compatibility wrapper around the traceable workflow."""
     input_path = Path(invoices_dir).expanduser().resolve()
     output_path = Path(output_xlsx).expanduser().resolve() if output_xlsx else None
-    output_dir = output_path.parent if output_path else input_path / "components_output"
+    output_dir = output_path.parent if output_path else (input_path / "components_output" if input_path.is_dir() else input_path.parent / "components_output")
     report = export_outputs(input_path, output_dir, output_xlsx=output_path)
     components = []
     with Path(report["outputs"]["components_csv"]).open("r", encoding="utf-8-sig", newline="") as handle:
@@ -591,6 +550,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", help="输出目录；默认 <input>/components_output")
     parser.add_argument("--output-xlsx", help="兼容旧接口：指定 components.xlsx 路径")
     parser.add_argument("--markdown", help="可选 Markdown 清单输出路径")
+    parser.add_argument("--merge-across-sources", action="store_true", help="确认不同输入文件代表独立采购后，允许跨来源合并同型号数量")
     return parser
 
 
@@ -609,12 +569,18 @@ def main() -> int:
     markdown_path = Path(args.markdown).expanduser().resolve() if args.markdown else None
 
     try:
-        report = export_outputs(input_path, output_dir, markdown_path=markdown_path, output_xlsx=output_xlsx)
+        report = export_outputs(
+            input_path,
+            output_dir,
+            markdown_path=markdown_path,
+            output_xlsx=output_xlsx,
+            merge_across_sources=args.merge_across_sources,
+        )
     except Exception as exc:
         raise SystemExit(f"extraction failed: {exc}") from exc
 
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["xlsx_validation"]["pass"] else 2
+    return 0 if report["pass"] else 2
 
 
 if __name__ == "__main__":
