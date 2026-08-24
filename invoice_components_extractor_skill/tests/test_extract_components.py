@@ -38,6 +38,10 @@ class TestExtractComponents(unittest.TestCase):
         self.assertIn("0805", package)
         self.assertIn("CL21B104KBCNNNC", model)
 
+        cat, _, package, _ = classify_component("螺钉式接线端子", "DB910-9.52-4P-GN-S")
+        self.assertEqual(cat, "接线端子")
+        self.assertIn("9.52", package)
+
     def test_pdf_line_parsing_keeps_review_instead_of_silent_drop(self):
         record = parse_pdf_line("*电子元件*未知组件 无法解析", "invoice.pdf", 1, 8)
         self.assertIsNotNone(record)
@@ -51,7 +55,12 @@ class TestExtractComponents(unittest.TestCase):
         self.assertEqual(record["qty"], 10.0)
         self.assertEqual(record["category"], "电容")
 
-    def test_safe_aggregation(self):
+    def test_discount_line_is_excluded_even_when_structure_is_short(self):
+        record = parse_pdf_line("*电子元件*折扣 -12.30", "invoice.pdf", 1, 12)
+        self.assertEqual(record["decision"], "exclude")
+        self.assertIn("discount", record["reason"])
+
+    def test_cross_source_merge_is_off_by_default(self):
         records = [
             {
                 "decision": "include", "category": "电阻", "normalized_model": "R0805-10K", "package": "0805 (SMD)",
@@ -62,7 +71,10 @@ class TestExtractComponents(unittest.TestCase):
                 "unit": "个", "qty": 5, "name": "贴片电阻", "source_file": "b.csv", "source_row": 3, "reason": "component_keyword:电阻",
             },
         ]
-        merged = aggregate_included(records)
+        separate = aggregate_included(records)
+        self.assertEqual(len(separate), 2)
+
+        merged = aggregate_included(records, merge_across_sources=True)
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0]["qty"], 15)
         self.assertIn("a.csv", merged[0]["source"])
@@ -96,6 +108,7 @@ class TestExtractComponents(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0]["decision"], "include")
             self.assertEqual(records[0]["category"], "接线端子")
+            self.assertIn("9.52", records[0]["package"])
 
     def test_export_and_xlsx_readback(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -111,6 +124,7 @@ class TestExtractComponents(unittest.TestCase):
                 writer.writerow(["未知组件", "ABC", "2", "个"])
 
             report = export_outputs(input_dir, output_dir)
+            self.assertTrue(report["pass"])
             self.assertTrue(report["xlsx_validation"]["pass"])
             self.assertEqual(report["counts"]["review_records"], 1)
             self.assertTrue((output_dir / "components.xlsx").exists())
