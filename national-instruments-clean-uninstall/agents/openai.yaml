@@ -1,4 +1,4 @@
 interface:
   display_name: "NI Clean Uninstall"
-  short_description: "Fully reset NI software and prepare a clean cDAQ installation"
-  default_prompt: "Use $national-instruments-clean-uninstall to fully remove NI software and configuration, then prepare a clean cDAQ installation."
+  short_description: "Fully remove NI software, configuration, and residual system state"
+  default_prompt: "Use $national-instruments-clean-uninstall to fully remove NI software, configuration, and residual system state."

@@ -1,6 +1,6 @@
 ---
 name: national-instruments-clean-uninstall
-description: Cleanly remove all National Instruments software, MAX/DAQmx configuration, residual files, and registry entries on Windows, then prepare a minimal cDAQ reinstallation. Use only when the user explicitly wants a full NI reset or clean reinstall.
+description: Cleanly remove all National Instruments software, MAX/DAQmx configuration, residual files, and registry entries on Windows. Use only when the user explicitly wants a full NI reset or clean uninstall.
 ---
 
 # National Instruments Clean Uninstall
@@ -43,13 +43,11 @@ HKEY_CURRENT_USER\Software\WOW6432Node\National Instruments
 
 System folders and `HKLM` normally require an elevated administrator process. If permission is denied, explain that elevation is required; do not broaden the deletion scope. If the user confirms ownership/ACL changes for an NI directory, change access only as needed to delete that exact directory, then verify the listed targets are absent.
 
-## Verify and prepare cDAQ reinstallation
+## Verify completion
 
 1. Verify the five folder paths and four registry keys are absent; report any locked or permission-protected residue precisely.
 2. Restart Windows once more.
-3. For a minimal cDAQ workflow, reinstall NI Package Manager, then NI-DAQmx. NI-DAQmx supplies the required MAX and System Configuration components. Add FlexLogger only if logging is needed, selecting the appropriate Lite edition when applicable.
-4. Do not add NI-VISA solely for cDAQ. Install it later only if the user needs instrument control through VISA (for example, an oscilloscope or programmable supply).
-5. Before choosing versions, check the current compatibility and release notes for the user's cDAQ chassis/modules and Windows version.
+3. End after reporting the clean-uninstall result. Installation, driver selection, device configuration, and cDAQ setup belong to a separate installation workflow.
 
 ## Official references
 
