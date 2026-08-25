@@ -34,6 +34,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | [analog-acquisition-error-budget](analog-acquisition-error-budget/SKILL.md) | 计算、合并和审计模拟采集与 ADC 链路误差，统一折算到报告端，并分开最坏值与 RSS；复杂场景由确定性脚本计算。 |
 | [hardware-power-budget](hardware-power-budget/SKILL.md) | 从原理图、Netlist、BOM 与官方数据手册建立整板/整机电源预算，按 rail 汇总典型/最坏电流与功耗并检查器件容量。 |
 | [national-instruments-clean-uninstall](national-instruments-clean-uninstall/SKILL.md) | Cleanly remove all NI software, MAX/DAQmx configuration, residual files, and registry entries on Windows. |
+| [national-instruments-cdaq-setup](national-instruments-cdaq-setup/SKILL.md) | Installs a clean cDAQ stack with NI Package Manager, NI-DAQmx/MAX, and FlexLogger Lite while avoiding unnecessary NI drivers. |
 
 ### PCB & Wiring Documentation
 
