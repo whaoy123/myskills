@@ -22,6 +22,17 @@ Read:
 
 Do not merely summarize a textbook. Build a mental model that connects the new topic to concepts the user already understands.
 
+## Interaction pacing
+
+Keep interactive explanations concise and locally focused.
+
+- Each reply should primarily answer the question or conceptual gap that is most directly connected to the user's immediately previous message.
+- Advance one useful conceptual step at a time; do not expand into downstream architecture, implementation details, alternatives, or future steps unless they are necessary to understand the current point or the user explicitly asks for them.
+- Prefer a short explanation plus one next question over a complete lecture when the user is still building the mental model interactively.
+- If a broader issue is relevant but not needed yet, keep it in project state/open questions instead of surfacing it immediately.
+- Avoid repeating already-established background unless it is required to connect the next concept.
+- When the user asks for more detail, deepen only that branch first before resuming the wider understanding loop.
+
 ## Understanding loop
 
 1. Identify what the user already knows that can anchor the explanation.
@@ -66,3 +77,11 @@ The human-readable report should contain:
 6. the next most useful concept/question.
 
 Keep the report explanatory, not a dumping ground for source lists.
+
+## Human-facing finalization
+
+Before `reports/current_understanding.md` is treated as the current human-readable report or handed to another stage, run `no-negative-echo` on that report after its technical content is settled.
+
+The finalization pass should describe the accepted current understanding directly and remove rejected session-only wording or stale conversational alternatives that no longer belong in the report.
+
+Do **not** apply this cleanup to `knowledge_model.yaml`, `research_questions.yaml`, `open_questions.yaml`, evidence records, or other authoritative project state. Those files must preserve the real knowledge state, uncertainty, and history needed by the research workflow.

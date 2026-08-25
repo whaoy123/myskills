@@ -329,3 +329,11 @@ The report should be selective and action-oriented:
 9. 是否已足够进入 design/planning
 
 Avoid long catalogues unless comparison itself is the research goal.
+
+## Human-facing finalization
+
+After the evidence/state update is complete and `reports/research_landscape.md` represents the accepted current research result, run `no-negative-echo` on that report before final handoff.
+
+The cleanup applies only to the human-facing report. It should remove stale conversational alternatives and rejected session-only wording while preserving required comparison results, current limitations, unresolved blockers, safety facts, compatibility facts, and evidence-backed caveats.
+
+Do **not** apply `no-negative-echo` to `sources.csv`, `search_log.csv`, `evidence.jsonl`, `research_questions.yaml`, `open_questions.yaml`, `pitfalls.yaml`, retained-source notes, or other evidence/audit state. Those artifacts intentionally preserve provenance, alternatives, contradictions, pitfalls, and research history.

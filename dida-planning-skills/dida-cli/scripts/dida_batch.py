@@ -167,11 +167,12 @@ def cmd_search(args: argparse.Namespace) -> int:
     projects = selected_projects(api, args.project, args.all_projects)
     query = args.query if args.case_sensitive else args.query.casefold()
     data_by_project: dict[str, dict[str, Any]] = {}
-    with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_READS, len(projects))) as pool:
-        futures = {pool.submit(api.project_data, project["id"]): project for project in projects}
-        for future in as_completed(futures):
-            project = futures[future]
-            data_by_project[project["id"]] = future.result()
+    if projects:
+        with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_READS, len(projects))) as pool:
+            futures = {pool.submit(api.project_data, project["id"]): project for project in projects}
+            for future in as_completed(futures):
+                project = futures[future]
+                data_by_project[project["id"]] = future.result()
     rows = []
     for project in projects:
         for task in data_by_project[project["id"]].get("tasks", []):
@@ -226,6 +227,70 @@ def load_plan(path: str) -> list[dict[str, Any]]:
         if not isinstance(operation, dict) or operation.get("op") not in {"create", "update", "comment"}:
             raise DidaError(f"invalid operation at index {index}; allowed ops: create, update, comment")
     return operations
+
+
+def validate_reference(value: Any, known_keys: set[str], field_name: str) -> None:
+    if not isinstance(value, str) or not value.startswith("@"):
+        return
+    key = value[1:]
+    if not key or key not in known_keys:
+        raise DidaError(f"{field_name} references unknown or not-yet-created key: {value}")
+
+
+def validate_identifier(value: Any, known_keys: set[str], field_name: str) -> None:
+    if not isinstance(value, str) or not value:
+        raise DidaError(f"{field_name} requires a non-empty string")
+    validate_reference(value, known_keys, field_name)
+
+
+def validate_fields(raw_fields: Any, known_keys: set[str]) -> None:
+    if not isinstance(raw_fields, dict):
+        raise DidaError("fields must be an object")
+    for source, value in raw_fields.items():
+        if source not in FIELD_ALIASES:
+            raise DidaError(f"unsupported field: {source}")
+        validate_reference(value, known_keys, source)
+
+
+def validate_plan(operations: list[dict[str, Any]]) -> None:
+    """Reject malformed or forward-referencing plans before any API access."""
+    known_keys: set[str] = set()
+    for index, operation in enumerate(operations):
+        prefix = f"operation {index}"
+        op = operation["op"]
+        validate_identifier(operation.get("project_id"), known_keys, f"{prefix} project_id")
+        if op == "create":
+            if not isinstance(operation.get("title"), str) or not operation["title"].strip():
+                raise DidaError(f"{prefix} create requires a non-empty title")
+            if "content" in operation and not isinstance(operation["content"], str):
+                raise DidaError(f"{prefix} create content must be a string")
+            raw_fields = operation.get("fields") or {}
+            validate_fields(raw_fields, known_keys)
+            if "title" in raw_fields or "content" in raw_fields:
+                raise DidaError(f"{prefix} create title/content belong at the operation top level")
+            if "parent_id" in operation:
+                validate_identifier(operation["parent_id"], known_keys, f"{prefix} parent_id")
+            if "key" in operation:
+                key = operation["key"]
+                if not isinstance(key, str) or not key:
+                    raise DidaError(f"{prefix} create key must be a non-empty string")
+                if key in known_keys:
+                    raise DidaError(f"duplicate create key: {key}")
+                known_keys.add(key)
+            continue
+        validate_identifier(operation.get("task_id"), known_keys, f"{prefix} task_id")
+        if op == "update":
+            raw_fields = operation.get("fields") or {}
+            validate_fields(raw_fields, known_keys)
+            if not raw_fields:
+                raise DidaError(f"{prefix} update requires at least one field")
+            continue
+        text = operation.get("text")
+        operation_id = operation.get("operation_id")
+        if not isinstance(text, str) or not text.strip():
+            raise DidaError(f"{prefix} comment requires non-empty text")
+        if not isinstance(operation_id, str) or not operation_id.strip():
+            raise DidaError(f"{prefix} comment requires a non-empty operation_id")
 
 
 def resolve_ref(value: Any, created: dict[str, str], field_name: str) -> Any:
@@ -352,8 +417,13 @@ def dry_run(operations: list[dict[str, Any]]) -> int:
     return 0
 
 
+def comment_title(operation_id: str, text: str) -> str:
+    return f"[dida-batch:{operation_id}] {text}"
+
+
 def cmd_plan(args: argparse.Namespace) -> int:
     operations = load_plan(args.input)
+    validate_plan(operations)
     if not args.apply:
         return dry_run(operations)
     api = load_api()
@@ -385,8 +455,6 @@ def cmd_plan(args: argparse.Namespace) -> int:
             verify_task(verified, expected)
             if operation.get("key"):
                 key = operation["key"]
-                if key in created:
-                    raise DidaError(f"duplicate create key: {key}")
                 created[key] = task_id
             results.append({"index": index, "op": op, "task_id": task_id, "title": verified.get("title")})
             continue
@@ -407,13 +475,15 @@ def cmd_plan(args: argparse.Namespace) -> int:
         if not isinstance(text, str) or not text.strip():
             raise DidaError("comment operation requires non-empty text")
         operation_id = operation.get("operation_id")
+        assert isinstance(operation_id, str)
+        saved_title = comment_title(operation_id, text)
         comments = api.comments(project_id, task_id)
-        if operation_id and any(operation_id in str(comment.get("title", "")) for comment in comments):
+        if any(comment.get("title") == saved_title for comment in comments):
             results.append({"index": index, "op": op, "task_id": task_id, "skipped": "operation_id already present"})
             continue
-        api.add_comment(project_id, task_id, text)
+        api.add_comment(project_id, task_id, saved_title)
         verified_comments = api.comments(project_id, task_id)
-        if not any(comment.get("title") == text for comment in verified_comments):
+        if not any(comment.get("title") == saved_title for comment in verified_comments):
             raise DidaError(f"read-back mismatch: comment was not found on {task_id}")
         results.append({"index": index, "op": op, "task_id": task_id, "comment_added": True})
     print(json.dumps({"dry_run": False, "created": created, "results": results}, ensure_ascii=False, indent=2))

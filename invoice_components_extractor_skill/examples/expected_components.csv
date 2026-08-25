@@ -1,0 +1,3 @@
+category,model,package,raw_name,qty,unit,source,decision_basis
+电容,CL21B104KBCNNNC 0805,0805 (SMD),贴片电容,20,个,example_input.csv:row 2,component_keyword:电容
+接线端子,DB910-9.52-4P-GN-S,间距 9.52 mm (THT),螺钉式接线端子,4,个,example_input.csv:row 3,component_keyword:端子

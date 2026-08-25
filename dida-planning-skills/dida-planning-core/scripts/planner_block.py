@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 from collections import OrderedDict
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ ALLOWED = {
     "required_for_parent": {True, False},
     "progress": {0, 25, 50, 75, 90, 100},
     "date_semantics": {"hard_deadline", "execution_window", "target_date", "none"},
+    "weekly_commitment": {"must", "should", "candidate"},
     "mobility": {"fixed", "protected", "movable"},
     "privacy": {"normal", "summary_only"},
     "estimate_confidence": {"low", "medium", "high"},
@@ -23,8 +25,10 @@ ALLOWED = {
     "memory_source": {"explicit", "durable_fact", "confirmed_inference"},
     "memory_confidence": {"high", "medium"},
 }
+WORK_ROLES = {"project", "phase", "task", "block"}
 ORDER = [
-    "schema", "role", "required_for_parent", "progress", "date_semantics", "mobility", "privacy",
+    "schema", "role", "required_for_parent", "progress", "date_semantics", "week_start",
+    "weekly_commitment", "mobility", "privacy",
     "estimate_confidence", "dependency_mode", "dependencies", "memory_scope", "memory_kind",
     "memory_source", "memory_confidence", "applies_to", "review_after", "supersedes"
 ]
@@ -104,6 +108,22 @@ def validate(data: dict[str, Any]) -> list[str]:
     for key, allowed in ALLOWED.items():
         if key in data and data[key] not in allowed:
             errors.append(f"{key} has invalid value: {data[key]!r}")
+    weekly_keys = {key for key in ("week_start", "weekly_commitment") if key in data}
+    if weekly_keys and weekly_keys != {"week_start", "weekly_commitment"}:
+        errors.append("week_start and weekly_commitment must be provided together")
+    if weekly_keys and data.get("role", "task") not in WORK_ROLES:
+        errors.append("weekly commitment fields are only valid on work roles")
+    if "week_start" in data:
+        week_start = data["week_start"]
+        if not isinstance(week_start, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", week_start):
+            errors.append("week_start must be an ISO date YYYY-MM-DD")
+        else:
+            try:
+                parsed_week_start = date.fromisoformat(week_start)
+                if parsed_week_start.weekday() != 0:
+                    errors.append("week_start must be a Monday")
+            except ValueError:
+                errors.append("week_start must be a valid ISO date")
     for idx, dep in enumerate(data.get("dependencies") or []):
         typ = dep.get("type")
         if typ not in {"finish_to_start", "start_to_start", "not_before", "external_wait"}:

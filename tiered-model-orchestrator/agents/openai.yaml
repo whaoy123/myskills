@@ -1,4 +1,4 @@
 interface:
-  display_name: "分层模型任务编排"
-  short_description: "高级模型负责方案审核验收，多个执行模型并行完成具体任务"
-  default_prompt: "使用 $tiered-model-orchestrator 先选择审核与执行模型，再并行完成并验收这个任务。"
+  display_name: "分层任务编排（独立窗口）"
+  short_description: "当前对话主控，Luna max 独立窗口执行、测试和审核"
+  default_prompt: "使用 $tiered-model-orchestrator，由当前对话作为唯一主控，通过独立 Codex 任务窗口按依赖派发 Luna max 的 Explorer、Worker、Tester 和 Reviewer，读取证据后完成返修与最终验收。"

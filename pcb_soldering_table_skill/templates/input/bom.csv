@@ -1,4 +1,4 @@
-Designator,Model,Footprint
-R1,100R,R0805
-R2,100R,R0805
-J1,DSUB-M-44H,DB44
+Designator,Nominal,ResolvedDescription,Footprint,DesignModel,FinalModel
+R1,10kΩ,"电阻类型:厚膜电阻;精度:±1%;功率:125mW;工作电压:150V;",R0805,OLD-R-10K,NEW-R-10K
+C34,1uF,"精度:±20%;额定电压:50V;纹波电流:8mA@120Hz;",CAP-SMD_BD4.0-L4.3-W4.3,RST50V1M4X5,RVT1H1R0M0405
+C42,1uF,"精度:±20%;额定电压:50V;纹波电流:8mA@120Hz;",CAP-SMD_BD4.0-L4.3-W4.3,RVT1H1R0M0405,RVT1H1R0M0405

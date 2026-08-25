@@ -173,3 +173,11 @@ Maintain:
 - `reports/implementation_plan.md`.
 
 Before final handoff, run the engineering-prestudy validator/audit so unresolved blockers cannot leak into an approved Dida plan.
+
+## Human-facing finalization
+
+After the selected route, stages, outputs, acceptance criteria, constraints, and verification gates are settled, run `no-negative-echo` on `reports/implementation_plan.md` before presenting or handing off the final human-readable plan.
+
+The finalization pass should express the accepted current plan directly. Preserve real tradeoffs, residual risks, unresolved blockers, safety/compatibility constraints, and any comparison that is necessary to justify the selected route.
+
+Do **not** apply this cleanup to `decisions.yaml`, `pitfalls.yaml`, `project_plan.yaml`, `dida_handoff.yaml`, or other decision/audit state. `PROPOSED`, `CONFIRMED`, `SUPERSEDED`, and `REJECTED` records are intentional project history and must remain available to the planning workflow.

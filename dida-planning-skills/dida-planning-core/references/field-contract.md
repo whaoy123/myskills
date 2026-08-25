@@ -6,6 +6,8 @@ Allowed values:
 - required_for_parent: true or false; omitted means true
 - progress: 0, 25, 50, 75, 90, 100
 - date_semantics: hard_deadline, execution_window, target_date, none
+- week_start: Monday ISO date for the current weekly mainline commitment; work roles only
+- weekly_commitment: must, should, candidate; only valid together with week_start
 - mobility: fixed, protected, movable
 - privacy: normal, summary_only
 - estimate_confidence: low, medium, high

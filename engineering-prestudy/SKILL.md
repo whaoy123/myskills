@@ -156,6 +156,32 @@ Fixed report roles:
 
 Use `scripts/build_final.py` to regenerate `FINAL.md` from current state/reports.
 
+## Human-facing report finalization
+
+All files under `reports/` are human-facing derived outputs. Before a report is treated as the current formal version, apply its domain/style rules first and run `no-negative-echo` last.
+
+At minimum this applies to:
+
+- `research_brief.md`;
+- `current_understanding.md`;
+- `research_landscape.md`;
+- `implementation_plan.md`;
+- `FINAL.md`.
+
+`no-negative-echo` must regenerate or clean the report from the accepted current state, while preserving real current risks, unresolved questions, comparison results needed for a decision, safety/compatibility constraints, and required audit facts.
+
+Do **not** apply this cleanup to `research_state/`, `history/`, retained-source notes, search/evidence logs, decision history, pitfall history, or Dida machine handoff state. Those artifacts intentionally preserve process and provenance.
+
+For `FINAL.md`, the order is:
+
+```text
+validate/audit current state
+→ regenerate FINAL.md
+→ apply document/style rules
+→ run no-negative-echo
+→ final read-back
+```
+
 ## Dida boundary
 
 Research determines what should be done and what outputs/acceptance criteria are required. Dida owns task breakdown, estimation, scheduling, and progress.
@@ -184,7 +210,8 @@ Before calling a prestudy complete:
 3. Resolve all ERRORs.
 4. Review WARNs; do not ignore safety/feasibility warnings.
 5. Regenerate `FINAL.md`.
-6. If handing off to Dida, export the bridge only after user approval.
+6. Run the human-facing finalization sequence above on `FINAL.md`.
+7. If handing off to Dida, export the bridge only after user approval.
 
 The audit checks include:
 
