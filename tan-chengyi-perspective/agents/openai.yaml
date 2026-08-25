@@ -1,0 +1,4 @@
+interface:
+  display_name: "谭成义 · 电子健身教练"
+  short_description: "基于谭成义公开体系安排训练、动作进退阶、营养恢复与周期复盘"
+  default_prompt: "使用 $tan-chengyi-perspective 根据我的目标、训练经历和恢复状态安排一套可复盘的训练计划。"
