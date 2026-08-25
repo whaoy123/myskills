@@ -71,7 +71,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 | Skill | Description |
 |-------|-------------|
-| [tan-chengyi-perspective](tan-chengyi-perspective/SKILL.md) | 在用户明确要求谭成义/谭式训练视角时，基于公开可核验训练思路安排训练计划、分析动作与平台期，并建立训练、恢复和复盘闭环；本仓库版本为独立兼容实现。 |
+| [tan-chengyi-perspective](tan-chengyi-perspective/SKILL.md) | 原样收录 `harpercoddog/Tanchengyi-Coach`：基于谭成义公开训练内容安排训练计划、分析动作、处理平台期，并将训练、营养、睡眠和恢复组织成可复盘闭环。 |
 
 ### Software Engineering & Workflow Orchestration
 
@@ -99,22 +99,22 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 ## Attribution & Open-Source Licenses / 鸣谢与开源许可证
 
-本仓库包含基于开源社区项目整理、引用或改写的 Skill，也包含参考公开但未声明开源许可证项目所做的独立兼容实现。对应来源与许可状态如下：
+本仓库包含基于开源社区项目整理、引用、改写或直接收录的 Skill。对应来源与署名/许可证要求如下：
 
-| 技能名称 | 使用方式 | 原作者 / 维护者 | 原始开源仓库 / 链接 | 许可证 / 许可状态 |
+| 技能名称 | 使用方式 | 原作者 / 维护者 | 原始开源仓库 / 链接 | 许可证 / 使用要求 |
 |---|---|---|---|---|
 | **grill-me** | 社区引用 | **Matt Pocock** | [mattpocock/skills](https://github.com/mattpocock/skills) | **MIT License** |
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | **MIT License** |
 | **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
 | **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | **MIT License** |
 | **no-negative-echo** | 社区引用 / 本仓库内再分发 | **LB623** | [LB623/no-negative-echo](https://github.com/LB623/no-negative-echo) | **MIT License** |
-| **tan-chengyi-perspective** | 独立兼容实现 / 方法参考，不复制上游正文 | **harpercoddog** | [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach) | **上游未声明明确许可证；不得视为 MIT/Apache 等开源授权** |
+| **tan-chengyi-perspective** | 社区引用 / 原样收录 | **harpercoddog** | [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach) | **使用或再分发时保留原作者署名、原始仓库链接及上游文件中的来源/鸣谢信息** |
 
 ### Third-Party Usage & Redistribution / 第三方使用与再分发
 
 - `humanizer` 中包含来自 `anti-defensive-writing` 的改写内容。调用 `humanizer` 生成、润色或压缩普通文本时，生成结果可以直接使用，无需添加 Kiterlin 署名。再分发对应源码、文档或 substantial portions 时，应保留原作者版权声明和 MIT 许可声明。第三方许可文本见 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
 - `no-negative-echo` 作为独立 Skill 收录。调用该 Skill 生成或清理普通输出时，生成结果可以直接使用，无需添加 LB623 署名。再分发该 Skill、脚本、文档或 substantial portions 时，应保留 `Copyright (c) 2026 LB623` 和 MIT 许可声明。完整许可和来源说明见 [`no-negative-echo/LICENSE`](no-negative-echo/LICENSE) 与 [`no-negative-echo/THIRD_PARTY_NOTICES.md`](no-negative-echo/THIRD_PARTY_NOTICES.md)。
-- `tan-chengyi-perspective` 参考 `harpercoddog/Tanchengyi-Coach` 的公开用途与方法组织方式，但本仓库版本为独立兼容实现，不内置或再分发其 `SKILL.md`、研究资料、脚本或 substantial portions。截至 2026-08-25，上游仓库未声明明确开源许可证，因此不得将上游原始文件视为可自由复制、修改或再分发的 MIT/Apache/GPL 内容；如需收录上游原文，应先取得适用许可证或作者授权。详细说明见 [`tan-chengyi-perspective/THIRD_PARTY_NOTICES.md`](tan-chengyi-perspective/THIRD_PARTY_NOTICES.md)。
+- `tan-chengyi-perspective` 原样收录自 [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach)。使用、修改或再分发时，请保留原作者/维护者署名、原始仓库链接，以及上游 README、SKILL、references 和 scripts 中已有的来源与鸣谢信息。
 
 ---
 
