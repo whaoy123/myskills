@@ -63,6 +63,21 @@ description: RTL coding-standard Skill for synthesizable Verilog/SystemVerilog. 
 ## 端口、参数与实例化
 
 - 端口方向、类型和位宽必须显式。
+- 对于取值集合有限、会影响模块生成结构或控制策略的配置，优先在 package 中用具名 `typedef enum` 定义专有类型，并用该类型声明 parameter 或相关信号；这样非法的裸整数选择不会悄悄混入后续判断。
+- 这类类型化配置应保留 package 命名空间，并在参数中写明类型和默认枚举值，例如：
+
+  ```systemverilog
+  // cc_pkg.sv
+  typedef enum logic {
+    ARB_RR   = 1'b0,
+    ARB_PRIO = 1'b1
+  } arb_mode_e;
+
+  // cc_stream_arbiter.sv
+  parameter cc_pkg::arb_mode_e ArbMode = cc_pkg::ARB_RR
+  ```
+
+- 仅为开放数值范围、位宽、深度或地址等数值配置时，继续使用合适的 `int unsigned`、`logic [N-1:0]` 等参数类型；不要为无穷或数值范围型参数强行套 enum。
 - 默认使用语义化端口名，并遵循项目既有 `_i` / `_o` / `_io` 或其他命名约定。
 - 实例化全部使用 named port connection 和 named parameter override。
 - 不使用 positional port / parameter、`.*` 或 `defparam`。
