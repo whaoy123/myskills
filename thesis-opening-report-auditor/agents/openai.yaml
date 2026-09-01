@@ -1,0 +1,4 @@
+interface:
+  display_name: "开题报告格式审阅"
+  short_description: "依据学校要求检查 Word 开题报告并输出固定问题表"
+  default_prompt: "请使用 $thesis-opening-report-auditor 审阅这个 Word 开题报告，并同时读取用户提供的学校模板、指南、通知或规则文本；先提取规则档，再按固定问题表输出问题、证据、修改建议和需保护的对象。正式学位论文优先使用用户指定的论文审核 Skill；没有学校要求来源时，只做通用 DOCX 检查并明确列出未配置项；未经明确授权不要修改文档。"

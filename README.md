@@ -48,6 +48,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 | Skill | Description |
 |-------|-------------|
+| [thesis-opening-report-auditor](thesis-opening-report-auditor/SKILL.md) | 审阅中文Word开题报告的结构、题注、交叉引用、参考文献原生编号、中文与英文/字母数字边界空格、修订和提交风险；支持按用户授权修改副本。 |
 | [md-to-docx](md-to-docx/SKILL.md) | Converts Markdown to template-aware Word `.docx` for Chinese academic, course, and technical reports with mixed typography, captions, and citation formatting. |
 | [material-reimbursement-table-generator](material_reimbursement_table_skill/SKILL.md) | 从采购发票 PDF 提取明细并生成或更新科研与办公材料验收单 Excel，支持税额、折扣、运费、动态公式和模板格式继承。 |
 | [invoice-soldering-components-extractor](invoice_components_extractor_skill/SKILL.md) | 从采购发票 PDF 提取焊接元器件，整理类别、型号、封装和数量并导出 Excel/Markdown。 |
