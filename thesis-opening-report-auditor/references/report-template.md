@@ -35,6 +35,9 @@
 | 未配置的学校检查项 | <项目列表或“无”> |
 | 正文文献引用 | <数量> |
 | 交叉引用域 | <数量> |
+| 正文首次引用顺序 | <1..N PASS / 实际首次出现序列> |
+| 文后编号来源异常 | <0 / 数量> |
+| 正文引用上角标异常 | <0 / 数量 / 未配置> |
 | 题注 | <图数量>/<表数量> |
 | 公式/脚注/尾注 | <数量或“未使用”> |
 | 已修改对象 | <数量> |
@@ -135,6 +138,10 @@
     "unconfigured_school_checks": [],
     "in_text_citation_count": 0,
     "cross_reference_field_count": 0,
+    "citation_first_occurrence_order": [],
+    "citation_order_ok": null,
+    "duplicate_reference_number_source_count": 0,
+    "non_superscript_citation_token_count": null,
     "figure_caption_count": 0,
     "table_caption_count": 0,
     "formula_count": 0,
