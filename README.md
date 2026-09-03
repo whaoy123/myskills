@@ -34,6 +34,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | [analog-acquisition-error-budget](analog-acquisition-error-budget/SKILL.md) | 计算、合并和审计模拟采集与 ADC 链路误差，统一折算到报告端，并分开最坏值与 RSS；复杂场景由确定性脚本计算。 |
 | [hardware-power-budget](hardware-power-budget/SKILL.md) | 从原理图、Netlist、BOM 与官方数据手册建立整板/整机电源预算，按 rail 汇总典型/最坏电流与功耗并检查器件容量。 |
 | [pcb-schematic-bom-review](pcb-schematic-bom-review/SKILL.md) | 交叉审查设计背景、原理图 PDF、BOM、网表与官方手册，检查真实连线、阻容感与电源参数、隔离/保护、MPN 与 Footprint、重复物料，并给出分级投板结论。 |
+| [datasheet-to-design-guide](datasheet-to-design-guide/SKILL.md) | 将器件 Datasheet 转换为可追溯的工程使用说明与设计检查清单，逐条保留原文锚点、适用条件、验证方法和变更依赖，并专门扫描脚注与隐藏约束。 |
 | [national-instruments-clean-uninstall](national-instruments-clean-uninstall/SKILL.md) | Cleanly remove all NI software, MAX/DAQmx configuration, residual files, and registry entries on Windows. |
 | [national-instruments-cdaq-setup](national-instruments-cdaq-setup/SKILL.md) | Installs a clean cDAQ stack with NI Package Manager, NI-DAQmx/MAX, and FlexLogger Lite while avoiding unnecessary NI drivers. |
 
@@ -115,12 +116,14 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | **MIT License** |
 | **no-negative-echo** | 社区引用 / 本仓库内再分发 | **LB623** | [LB623/no-negative-echo](https://github.com/LB623/no-negative-echo) | **MIT License** |
 | **tan-chengyi-perspective** | 社区引用 / 原样收录 | **harpercoddog** | [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach) | **使用或再分发时保留原作者署名、原始仓库链接及上游文件中的来源/鸣谢信息** |
+| **datasheet-to-design-guide** | 基于流程思想改写 / 派生 | **Sergey Lebedev / Londeren** | [Londeren/claude-plugins](https://github.com/Londeren/claude-plugins) (`book-to-skill`) | **MIT License；再分发时保留版权与许可声明** |
 
 ### Third-Party Usage & Redistribution / 第三方使用与再分发
 
 - `humanizer` 中包含来自 `anti-defensive-writing` 的改写内容。调用 `humanizer` 生成、润色或压缩普通文本时，生成结果可以直接使用，无需添加 Kiterlin 署名。再分发对应源码、文档或 substantial portions 时，应保留原作者版权声明和 MIT 许可声明。第三方许可文本见 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
 - `no-negative-echo` 作为独立 Skill 收录。调用该 Skill 生成或清理普通输出时，生成结果可以直接使用，无需添加 LB623 署名。再分发该 Skill、脚本、文档或 substantial portions 时，应保留 `Copyright (c) 2026 LB623` 和 MIT 许可声明。完整许可和来源说明见 [`no-negative-echo/LICENSE`](no-negative-echo/LICENSE) 与 [`no-negative-echo/THIRD_PARTY_NOTICES.md`](no-negative-echo/THIRD_PARTY_NOTICES.md)。
 - `tan-chengyi-perspective` 原样收录自 [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach)。使用、修改或再分发时，请保留原作者/维护者署名、原始仓库链接，以及上游 README、SKILL、references 和 scripts 中已有的来源与鸣谢信息。
+- `datasheet-to-design-guide` 基于 `Londeren/claude-plugins` 中 `book-to-skill` 的流程思想改写，保留来源、`NOTICE.md` 与上游 MIT 许可文本；使用该 Skill 生成的普通工程文档不要求额外署名，再分发 Skill 本体或 substantial portions 时应保留对应版权与许可声明。
 
 ---
 
