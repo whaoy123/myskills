@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hardware Review State",
+  "type": "object",
+  "required": ["schema_version", "review_revision", "results"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "review_revision": {"type": "string", "minLength": 1},
+    "design_snapshot_hash": {"type": ["string", "null"]},
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["result_id", "rule_id", "module_id", "status", "dependency_keys"],
+        "properties": {
+          "result_id": {"type": "string"},
+          "rule_id": {"type": "string"},
+          "module_id": {"type": "string"},
+          "module_revision": {"type": ["string", "null"]},
+          "status": {"enum": ["PASS", "FAIL", "UNCLEAR", "N/A"]},
+          "dependency_keys": {"type": "array", "items": {"type": "string"}},
+          "depends_on_results": {"type": "array", "items": {"type": "string"}},
+          "calculation_model": {"type": ["string", "null"]},
+          "evidence": {"type": "array"},
+          "actual_design": {},
+          "rule": {},
+          "recommendation": {"type": ["string", "null"]},
+          "missing_evidence": {"type": ["array", "null"]}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

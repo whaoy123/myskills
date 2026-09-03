@@ -1,0 +1,12 @@
+{
+  "calculation_id": "CALC-001",
+  "model": "model-name:v1",
+  "inputs": [],
+  "formula": "",
+  "nominal_result": {},
+  "worst_case": {},
+  "sanity_check": {"method": "", "result": ""},
+  "compared_limit": {},
+  "assertion": "PASS|FAIL|UNCLEAR",
+  "notes": ""
+}

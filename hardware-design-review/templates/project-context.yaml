@@ -1,0 +1,14 @@
+schema_version: 1
+project: PROJECT_NAME
+revision: REVISION
+
+operating_conditions:
+  ambient_temperature:
+    min: null
+    max: null
+    unit: degC
+  rails: []
+  external_signals: []
+
+assumptions: []
+required_standards: []

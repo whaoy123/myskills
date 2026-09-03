@@ -1,0 +1,17 @@
+{
+  "result_id": "device:module:instance:RULE-01",
+  "rule_id": "RULE-01",
+  "module_id": "device:manufacturer:part",
+  "module_revision": "rev",
+  "affected_entities": [],
+  "actual_design": {},
+  "rule": {},
+  "calculation_id": null,
+  "status": "UNCLEAR",
+  "evidence": [],
+  "recommendation": null,
+  "missing_evidence": [],
+  "dependency_keys": [],
+  "depends_on_results": [],
+  "review_revision": "rev_001"
+}

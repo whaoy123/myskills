@@ -1,0 +1,19 @@
+schema_version: 1
+module:
+  id: device:manufacturer:part-number
+  type: device
+  name: PART_NUMBER
+  manufacturer: MANUFACTURER
+  revision: DATASHEET_REVISION
+selectors:
+  part_numbers: [PART_NUMBER]
+  aliases: []
+  packages: []
+  structures: []
+capabilities: []
+files:
+  usage_guide: usage-guide.md
+  checklist: checklist.md
+  provenance: PROVENANCE.md
+rule_namespace: PART_NUMBER
+rules: []

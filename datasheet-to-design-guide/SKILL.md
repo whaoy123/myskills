@@ -1,10 +1,12 @@
 ---
 name: datasheet-to-design-guide
-description: Use when the user provides an IC/component datasheet and wants a traceable engineering usage guide and design-review checklist, or wants to review a schematic/PCB against the datasheet. Extract requirements from the source rather than relying on generic electronics knowledge. Every requirement must be traceable to the datasheet.
+description: Use when the user provides an IC/component datasheet and wants a traceable engineering usage module. Convert the exact datasheet/variant into usage-guide.md, checklist.md, PROVENANCE.md, and machine-readable module.yaml for direct loading by hardware-design-review. Extract requirements from the source rather than generic electronics knowledge; every requirement must remain traceable to the datasheet and preserve conditions, ambiguity and applicability.
 ---
 # Datasheet to Design Guide
 
-Turn a component datasheet into an engineering artifact that can be used both to design with the part and to review a design later.
+Turn one component datasheet into a reusable engineering Reference Module.
+
+This Skill extracts device knowledge. Concrete board-level schematic/PCB review should use the generated module with `hardware-design-review`.
 
 Input: one datasheet, preferably the exact revision used by the design.
 
@@ -14,163 +16,117 @@ Output:
 <part-number>/
 ├── usage-guide.md
 ├── checklist.md
-└── PROVENANCE.md
+├── PROVENANCE.md
+└── module.yaml
 ```
 
-The goal is not to summarize the datasheet. The goal is to answer two questions:
+The four files form one interface:
 
-1. How should this part be used in a real design?
-2. What must be checked before the schematic and PCB can be considered compliant with the datasheet?
+- `usage-guide.md`: how to use the part correctly;
+- `checklist.md`: stable executable engineering review rules;
+- `PROVENANCE.md`: exact source locations, extraction decisions and unresolved ambiguity;
+- `module.yaml`: machine index used by `hardware-design-review` to select the module and map rules to required facts/evidence/dependencies.
+
+`module.yaml` MUST NOT become a second full copy of the datasheet rules.
 
 <master_rules>
 ## Rules that hold across all phases
 
 1. **No requirement without a source anchor.** Every extracted design requirement must include a short verbatim source anchor and a location: PDF page plus section/table/figure/note when available.
-2. **Do not infer missing requirements.** Generic engineering knowledge may be used to explain a datasheet rule, but it must never be presented as a datasheet requirement unless the source states it.
-3. **Conditions belong to the requirement.** A limit without its test condition, operating condition, mode, temperature range, supply range, or footnote is incomplete.
-4. **Exact device identity matters.** Verify part number, grade, package, revision, and variant. Do not silently mix limits from related devices.
-5. **Notes and footnotes are first-class source material.** Scan table notes, figure notes, equation notes, pin descriptions, application sections, and layout sections deliberately. Many design-breaking constraints live there.
-6. **Separate fact from calculation.** Datasheet values are source facts. Derived resistor values, gains, currents, powers, margins, and tolerances are calculations and must show inputs and formula.
-7. **Unknown is allowed.** If the datasheet is ambiguous or the source is incomplete, mark the item `UNCLEAR` rather than filling the gap from intuition.
-8. **Design review must be scoped.** Once a checklist item has been verified, later changes reopen only the checklist items that depend on the changed nets/components/parameters unless a newly discovered requirement expands the scope.
+2. **Do not infer missing requirements.** Generic engineering knowledge may explain a datasheet rule, but must never be presented as a datasheet requirement unless the source states it.
+3. **Conditions belong to the requirement.** A limit without its test condition, mode, temperature, supply range or footnote is incomplete.
+4. **Exact device identity matters.** Verify part number, grade, package, revision and variant. Do not silently mix related devices.
+5. **Notes and footnotes are first-class source material.** Scan table notes, figure notes, equation notes, pin descriptions, application sections and layout sections deliberately.
+6. **Separate source fact from derived calculation.** Datasheet values are facts. Derived resistor values, gains, currents, powers, margins and tolerances are calculations and must show inputs and formula.
+7. **Unknown is allowed.** Ambiguous or incomplete source material becomes `UNCLEAR`; never fill it from intuition.
+8. **Stable IDs are part of the public interface.** Do not renumber existing checklist IDs merely because wording changes. Add a new ID when a genuinely new requirement is discovered.
+9. **Machine metadata never outranks provenance.** `module.yaml` indexes the rule; `checklist.md` and `PROVENANCE.md` remain the human-readable requirement and authority record.
+10. **Design-review dependencies must be declared.** Each actionable rule should identify the design facts that can invalidate a future PASS result.
 </master_rules>
 
 <phase_0>
-## Phase 0 — Establish the source
+## Phase 0 — Establish the source and module identity
 
-Before extraction, record:
+Before extraction, record exact part number/orderable variant, manufacturer, datasheet title, revision/date, package scope, package/grade differences, and source completeness. Write these facts to `PROVENANCE.md` and use them to populate `module.yaml` selectors.
 
-- exact part number and orderable variant if visible;
-- datasheet title;
-- document revision/date;
-- package(s) relevant to the user's design;
-- whether the source appears complete and readable.
-
-If the source is truncated, corrupted, or the device variant cannot be identified when the distinction affects limits, stop and report the uncertainty.
-
-Write this information to `PROVENANCE.md`.
+If the source is truncated/corrupted or the applicable variant cannot be identified when it changes limits, stop and report the uncertainty.
 </phase_0>
 
 <phase_1>
 ## Phase 1 — Extract requirements
 
-Read `references/01-extraction.md` before extracting.
-
-Run separate passes for these requirement classes:
-
-A. Power, grounding, bias, startup, shutdown, sequencing, UVLO and supply current.
-B. Input/output electrical limits, source/load impedance, bias current, common-mode/differential range and drive capability.
-C. External components and equations: resistor/capacitor/inductor/transformer values, gain networks, filters, compensation and protection.
-D. Functional behavior: modes, timing, clocks, interfaces, logic thresholds, enable/fault behavior and state transitions.
-E. Absolute maximum, recommended operating conditions, thermal, reliability, isolation, creepage/clearance and protection limits.
-F. PCB/layout/placement/routing/decoupling/thermal/EMI guidance that can change implementation.
-G. **Hidden conditional constraints:** table footnotes, figure notes, pin-description caveats, test conditions, application-section restrictions, maximum current through external networks, source-resistance limits, settling constraints, startup exceptions, and requirements stated only in prose.
-
-Do not merge passes A–G mentally. The G pass is mandatory even when earlier passes look complete.
-
-Each candidate must use the schema in `references/01-extraction.md`.
+Read `references/01-extraction.md`. Run separate passes for A power/ground/startup, B I/O electrical limits, C external components/equations, D functional/timing/interface behavior, E absolute max/recommended/thermal/isolation, F PCB/layout/decoupling/EMI, and G hidden conditional constraints/footnotes. Pass G is mandatory.
 </phase_1>
 
 <phase_2>
 ## Phase 2 — Validate the extracted set
 
-Read `references/02-validation.md`.
-
-Validation must be performed as a separate pass from extraction. Prefer a different agent/model when available.
-
-For every candidate:
-
-1. mechanically verify the source anchor exists;
-2. verify the stated condition and units;
-3. verify it applies to the exact part/variant/package;
-4. check whether another datasheet section narrows, overrides, or qualifies it;
-5. classify it as `REQUIRED`, `RECOMMENDED`, `INFORMATIONAL`, or `UNCLEAR`;
-6. merge true duplicates without losing stricter conditions.
-
-Then run a **coverage challenge**: search specifically for constraints not yet represented in the candidate set, especially words and structures such as `must`, `should`, `do not`, `maximum`, `minimum`, `recommended`, `required`, `only`, `when`, `unless`, `note`, `see`, footnote markers, equation conditions, and layout callouts.
+Read `references/02-validation.md`. Validation is a separate pass. For every candidate verify the source anchor, conditions/units, exact variant/package applicability, qualifiers/overrides, Strength (`REQUIRED`, `RECOMMENDED`, `APP`, `INFORMATIONAL`, `UNCLEAR`), required future DesignFacts/evidence, and invalidation dependencies. Then run a coverage challenge for missed constraint language and footnotes.
 </phase_2>
 
 <phase_3>
-## Phase 3 — Build the usage guide and checklist
+## Phase 3 — Build human-readable files
 
 Read `references/03-output-format.md`.
 
-### `usage-guide.md`
-
-Organize by engineering task, not by datasheet chapter. Typical routing:
-
-- Device role and signal path
-- Power and grounding
-- Input/front-end design
-- Output/interface design
-- External component calculations
-- Protection and abnormal conditions
-- Timing/control behavior
-- PCB/layout/thermal/isolation
-
-Only include material that changes how the device is designed or reviewed.
-
-### `checklist.md`
-
-Every actionable requirement becomes one checklist row/item with a stable ID.
-
-A checklist item must tell a reviewer:
-
-- what must be true;
-- under what condition;
-- where the requirement came from;
-- what schematic/PCB object it applies to;
-- how to verify it;
-- what other items must be reopened if this item changes.
-
-Do not create a separate “notes” or “attention points” document. If a note matters to design, it belongs in the checklist or usage guide.
+`usage-guide.md` is task-oriented engineering guidance. `checklist.md` contains every actionable rule with stable ID, Strength, condition, source, applies-to, verification and `UNVERIFIED` source status. `PROVENANCE.md` records source identity, scope, extraction passes, validation method, ambiguities, application-vs-specification decisions and later rule additions.
 </phase_3>
 
 <phase_4>
-## Phase 4 — Calculation discipline
+## Phase 4 — Compile module.yaml
 
-Calculations are allowed only after the source facts have been extracted.
+Read `references/04-module-interface.md` and create `module.yaml` only after checklist IDs are stable.
 
-For each engineering calculation record:
+For every checklist rule declare: matching `id`, category/Strength, verification methods, required DesignFacts, required evidence types, affected object categories, invalidation dependency keys, and rule-to-rule dependencies where needed.
 
-1. input variables and source anchors;
-2. formula before code;
-3. units for every input and result;
-4. script result;
-5. at least one independent sanity check: inverse calculation, limiting-case check, dimensional check, or order-of-magnitude check.
-
-The script is not evidence that the formula or inputs are correct. The calculation is accepted only when source inputs and formula have both been reviewed.
-
-When reviewing an existing design, report the minimum human-review surface first: source inputs, formula/criterion, and PASS/FAIL. Do not require the user to redo arithmetic that has already passed automated and independent checks.
+Do not duplicate full requirement prose, numeric limits or source quotations in `module.yaml` merely for convenience. Selectors must be conservative and cover only verified part/package variants.
 </phase_4>
 
 <phase_5>
-## Phase 5 — Review a schematic or PCB with the generated checklist
+## Phase 5 — Calculation discipline
 
-When a schematic/PCB is supplied later:
-
-1. map each relevant checklist ID to concrete nets, pins, components, values, and layout regions;
-2. mark `PASS`, `FAIL`, `N/A`, or `UNCLEAR` with evidence;
-3. do not mark the whole design “verified” while any applicable `REQUIRED` item is `FAIL` or `UNCLEAR`;
-4. after a change, reopen only dependent checklist IDs plus any newly discovered requirement.
-
-If a new valid datasheet requirement is discovered during review, add a new stable checklist ID and record why it was previously absent. Do not silently rewrite old review history.
+Calculations are allowed only after source facts are extracted. Preserve inputs/source anchors, formula before code, units, script result and an inverse/limiting/dimensional/order-of-magnitude sanity check. Concrete design PASS/FAIL calculations belong to `hardware-design-review`.
 </phase_5>
+
+<phase_6>
+## Phase 6 — Interface consistency check
+
+Before delivery:
+
+1. every `module.yaml` rule ID exists in `checklist.md`;
+2. every actionable checklist rule is represented unless explicitly human-only;
+3. companion file paths resolve;
+4. selectors match `PROVENANCE.md` scope;
+5. unresolved ambiguity is not converted to an unqualified machine rule;
+6. dependencies are specific enough for incremental review.
+
+Run `scripts/check_module_consistency.py`; when the sibling `hardware-design-review/scripts/validate_module.py` is available, run that validator too.
+</phase_6>
+
+<concrete_design_review>
+## When a schematic/PCB is supplied together with the datasheet
+
+First generate/update the four-file Reference Module, then use `hardware-design-review` for board-level review. That shared review engine owns DesignFacts, DesignGraph, script calculation records, PASS/FAIL/UNCLEAR/N/A and incremental ReviewState.
+
+If board review discovers a valid missing datasheet rule, add a new stable checklist ID, update `module.yaml`, and record why it was added in `PROVENANCE.md`. Do not renumber historical IDs.
+</concrete_design_review>
 
 <self_check>
 ## Check before delivering
 
-- Every `REQUIRED`/`RECOMMENDED` checklist item has a source anchor and exact location.
+- Exact part/variant/package/revision is identified or explicitly unresolved.
+- Every design rule has source anchor and exact location.
 - No value is detached from its condition or footnote.
-- A dedicated hidden-constraint pass was completed.
-- Absolute maximum ratings are not presented as normal design targets.
-- Recommended operating conditions and electrical-characteristic test conditions are distinguished.
-- Related device variants have not been mixed.
-- All derived values show inputs, formula, units, and a sanity check.
-- `usage-guide.md` tells an engineer how to use the part; it does not retell the datasheet.
-- `checklist.md` is sufficient to review a schematic/PCB without rereading the entire datasheet for already-extracted requirements.
+- Hidden-constraint pass completed.
+- Absolute maximum is not treated as a normal design target.
+- Application examples are not silently upgraded to component specifications.
+- Related variants are not mixed.
+- Derived values retain inputs, formula, units and sanity check.
+- Checklist IDs are stable.
+- `module.yaml` contains selectors/dependencies without duplicating the full rule corpus.
+- All four files agree on scope.
 </self_check>
 
 ## Attribution
 
-This skill is adapted from the workflow ideas in `book-to-skill` by Sergey Lebedev / Londeren, especially source anchoring, independent validation, task-oriented output routing, and provenance tracking. The upstream project is MIT licensed. See `LICENSE` and `NOTICE.md`.
+This skill is adapted from workflow ideas in `book-to-skill` by Sergey Lebedev / Londeren, especially source anchoring, independent validation, task-oriented output routing and provenance tracking. The upstream project is MIT licensed. See `LICENSE` and `NOTICE.md`.

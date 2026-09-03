@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hardware Review DesignFact",
+  "type": "object",
+  "required": ["fact_id", "entity", "property", "value", "source", "confidence"],
+  "properties": {
+    "fact_id": {"type": "string", "minLength": 1},
+    "entity": {},
+    "property": {"type": "string", "minLength": 1},
+    "value": {},
+    "unit": {"type": ["string", "null"]},
+    "source": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1},
+        "location": {"type": ["string", "null"]},
+        "revision_hash": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "confidence": {"enum": ["confirmed", "derived", "visual", "conflicting", "unknown"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,47 @@
+schema_version: 1
+
+module:
+  id: device:manufacturer:part-number
+  type: device
+  name: PART_NUMBER
+  manufacturer: MANUFACTURER
+  revision: DATASHEET_REVISION
+
+selectors:
+  part_numbers:
+    - PART_NUMBER
+  aliases: []
+  packages: []
+  structures: []
+
+capabilities:
+  - connection
+  - electrical
+
+files:
+  usage_guide: usage-guide.md
+  checklist: checklist.md
+  provenance: PROVENANCE.md
+
+rule_namespace: PART_NUMBER
+
+rules:
+  - id: PWR-01
+    category: power
+    strength: REQUIRED
+    verification:
+      - netlist
+      - calculation
+    required_facts:
+      - component.supply_voltage
+    required_evidence:
+      - netlist
+      - project_context
+    affects:
+      - component.supply
+      - power_domain
+    dependency_keys:
+      - component.part_number
+      - component.supply_net
+      - net.supply_voltage
+    depends_on_rules: []

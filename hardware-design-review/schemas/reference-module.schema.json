@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hardware Design Review Reference Module",
+  "type": "object",
+  "required": ["schema_version", "module", "selectors", "files", "rule_namespace", "rules"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "module": {
+      "type": "object",
+      "required": ["id", "type", "name", "revision"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"enum": ["device", "interface", "power", "isolation", "pcb", "system"]},
+        "name": {"type": "string", "minLength": 1},
+        "manufacturer": {"type": ["string", "null"]},
+        "revision": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "selectors": {"type": "object"},
+    "capabilities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "files": {
+      "type": "object",
+      "required": ["usage_guide", "checklist", "provenance"],
+      "properties": {
+        "usage_guide": {"type": "string"},
+        "checklist": {"type": "string"},
+        "provenance": {"type": "string"}
+      }
+    },
+    "rule_namespace": {"type": "string", "minLength": 1},
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "strength", "verification", "required_facts", "dependency_keys"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]+$"},
+          "category": {"type": "string", "minLength": 1},
+          "strength": {"enum": ["REQUIRED", "RECOMMENDED", "APP", "INFORMATIONAL", "UNCLEAR"]},
+          "verification": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "required_facts": {"type": "array", "items": {"type": "string"}},
+          "required_evidence": {"type": "array", "items": {"type": "string"}},
+          "affects": {"type": "array", "items": {"type": "string"}},
+          "dependency_keys": {"type": "array", "items": {"type": "string"}},
+          "depends_on_rules": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
