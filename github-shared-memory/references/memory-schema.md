@@ -9,22 +9,25 @@ ai-memory/
 │       ├── overview.md
 │       ├── decisions.md
 │       ├── status.md
-│       └── test-results.md        # only when the project needs it
+│       ├── test-results.md        # only when the project needs it
+│       └── archive/               # superseded decisions and historical evidence
 └── knowledge/
     └── <stable-topic>.md          # reusable, non-project-specific knowledge
 ```
 
-`PROFILE.md` stores stable collaboration preferences and durable background that affects many projects. Do not put time-sensitive work state here.
+PROFILE.md stores stable collaboration preferences and durable background that affects many projects. Do not put time-sensitive work state here.
 
-`CURRENT.md` is a short index of active projects: current focus, blocking item, next action, and links to the project files. Remove completed one-off items instead of turning it into a history log.
+CURRENT.md is a short index of active projects: current focus, blocking item, next action, and links to the project files. Remove completed one-off items instead of turning it into a history log.
 
-`overview.md` states the project purpose, scope, canonical repositories/documents, and constraints. It should be readable by an agent with no chat history.
+overview.md states the project purpose, scope, canonical repositories/documents, and constraints. It should be readable by an agent with no chat history.
 
-`decisions.md` is the authoritative decision ledger. Each entry has a date, decision, rationale/evidence, status, and a `Supersedes:` line when replacing an earlier entry.
+decisions.md is the authoritative decision ledger. Each entry has a date, decision, rationale/evidence, status, and a Supersedes: line when replacing an earlier entry.
 
-`status.md` is the compact working handoff: completed work, current state, blockers, and next action. Keep it current rather than appending daily diaries.
+status.md is the compact working handoff: completed work, current state, blockers, and next action. Keep it current rather than appending daily diaries.
 
-`test-results.md` records measurements that need conditions to be interpretable: date, hardware/software revision, setup, inputs, results with units, and conclusion.
+test-results.md records measurements that need conditions to be interpretable: date, hardware/software revision, setup, inputs, results with units, and conclusion.
+
+archive/ preserves superseded decisions, completed historical handoffs, and older test evidence that must remain traceable but should not consume active context. Each archived record must say why it moved and link to the active replacement when one exists.
 
 ## Decision entry
 
@@ -38,4 +41,4 @@ ai-memory/
 - Supersedes: none
 ```
 
-Do not duplicate the same fact in `CURRENT.md`, `status.md`, and `decisions.md`: keep the authority in one place and link to it.
+Do not duplicate the same fact in CURRENT.md, status.md, and decisions.md: keep the authority in one place and link to it.
