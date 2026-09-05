@@ -85,6 +85,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | Skill | Description |
 |-------|-------------|
 | [karpathy-guidelines](karpathy-guidelines/SKILL.md) | Core software-engineering, coding, and AI-system design principles based on Andrej Karpathy's public guidance. |
+| [markitdown](markitdown/SKILL.md) | Wraps Microsoft's MarkItDown to convert PDF, Word, PowerPoint, Excel, images, audio, HTML, archives, EPUB, and related inputs into LLM-friendly Markdown. |
 | [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | Uses the current conversation as the orchestrator for Explorer, Worker, Tester, and Reviewer agents, with task-topology planning, parallel execution, repair loops, independent review, and final acceptance. |
 
 ### 日程管理 / Dida Planning (滴答清单)
@@ -112,6 +113,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 |---|---|---|---|---|
 | **grill-me** | 社区引用 | **Matt Pocock** | [mattpocock/skills](https://github.com/mattpocock/skills) | **MIT License** |
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | **MIT License** |
+| **markitdown** | 工具集成 / Skill 封装 | **Microsoft Corporation** | [microsoft/markitdown](https://github.com/microsoft/markitdown) | **MIT License；本仓库不内置上游实现源码，运行时依赖遵循上游许可** |
 | **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | **MIT License** |
 | **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | **MIT License** |
 | **no-negative-echo** | 社区引用 / 本仓库内再分发 | **LB623** | [LB623/no-negative-echo](https://github.com/LB623/no-negative-echo) | **MIT License** |
@@ -120,6 +122,7 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 
 ### Third-Party Usage & Redistribution / 第三方使用与再分发
 
+- `markitdown` 是对 Microsoft MarkItDown 的工具集成 Skill，本仓库不复制其实现源码；运行时安装的 MarkItDown 包仍遵循上游 MIT License。若后续直接收录或再分发上游源码或 substantial portions，应保留 Microsoft 的版权与 MIT 许可声明。完整来源与许可文本见 [`markitdown/THIRD_PARTY_NOTICES.md`](markitdown/THIRD_PARTY_NOTICES.md)。
 - `humanizer` 中包含来自 `anti-defensive-writing` 的改写内容。调用 `humanizer` 生成、润色或压缩普通文本时，生成结果可以直接使用，无需添加 Kiterlin 署名。再分发对应源码、文档或 substantial portions 时，应保留原作者版权声明和 MIT 许可声明。第三方许可文本见 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
 - `no-negative-echo` 作为独立 Skill 收录。调用该 Skill 生成或清理普通输出时，生成结果可以直接使用，无需添加 LB623 署名。再分发该 Skill、脚本、文档或 substantial portions 时，应保留 `Copyright (c) 2026 LB623` 和 MIT 许可声明。完整许可和来源说明见 [`no-negative-echo/LICENSE`](no-negative-echo/LICENSE) 与 [`no-negative-echo/THIRD_PARTY_NOTICES.md`](no-negative-echo/THIRD_PARTY_NOTICES.md)。
 - `tan-chengyi-perspective` 原样收录自 [harpercoddog/Tanchengyi-Coach](https://github.com/harpercoddog/Tanchengyi-Coach)。使用、修改或再分发时，请保留原作者/维护者署名、原始仓库链接，以及上游 README、SKILL、references 和 scripts 中已有的来源与鸣谢信息。
