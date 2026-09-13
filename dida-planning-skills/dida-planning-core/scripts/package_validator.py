@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 SKILLS = [
-    "dida-cli", "dida-task-capture", "dida-task-breakdown", "dida-task-estimator",
+    "dida-manager", "dida-cli", "dida-task-capture", "dida-task-breakdown", "dida-task-estimator",
     "dida-daily-planner", "dida-task-progress", "dida-weekly-review", "dida-planning-profile",
     "dida-planning-memory"
 ]
