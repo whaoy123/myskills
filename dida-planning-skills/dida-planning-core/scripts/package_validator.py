@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import re
-import sys
 from pathlib import Path
 
 SKILLS = [
@@ -14,13 +13,16 @@ SKILLS = [
 
 
 def frontmatter(text: str) -> dict[str, str]:
-    if not text.startswith("---\n"): return {}
+    if not text.startswith("---\n"):
+        return {}
     end = text.find("\n---\n", 4)
-    if end < 0: return {}
-    out = {}
+    if end < 0:
+        return {}
+    out: dict[str, str] = {}
     for line in text[4:end].splitlines():
         if ":" in line:
-            k, v = line.split(":", 1); out[k.strip()] = v.strip()
+            k, v = line.split(":", 1)
+            out[k.strip()] = v.strip()
     return out
 
 
@@ -57,6 +59,7 @@ def validate_manifest(root: Path) -> list[str]:
     manifest = root / "MANIFEST.sha256"
     if not manifest.exists():
         return ["missing MANIFEST.sha256"]
+
     errors: list[str] = []
     entries: dict[str, str] = {}
     for line_no, line in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 1):
@@ -82,21 +85,34 @@ def validate_manifest(root: Path) -> list[str]:
     return errors
 
 
-def validate(root: Path) -> tuple[list[str], list[str]]:
-    errors: list[str] = []; warnings: list[str] = []; names = set()
+def validate(root: Path, *, strict_manifest: bool = False) -> tuple[list[str], list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    names: set[str] = set()
+
     for skill in SKILLS:
         p = root / skill / "SKILL.md"
-        if not p.exists(): errors.append(f"missing {p}"); continue
-        text = p.read_text(encoding="utf-8"); fm = frontmatter(text)
-        if fm.get("name") != skill: errors.append(f"{p}: name mismatch")
-        if not fm.get("description"): errors.append(f"{p}: missing description")
-        if fm.get("name") in names: errors.append(f"duplicate skill name {fm.get('name')}")
+        if not p.exists():
+            errors.append(f"missing {p}")
+            continue
+        text = p.read_text(encoding="utf-8")
+        fm = frontmatter(text)
+        if fm.get("name") != skill:
+            errors.append(f"{p}: name mismatch")
+        if not fm.get("description"):
+            errors.append(f"{p}: missing description")
+        if fm.get("name") in names:
+            errors.append(f"duplicate skill name {fm.get('name')}")
         names.add(fm.get("name"))
         lines = len(text.splitlines())
-        if lines > 140: warnings.append(f"{p}: {lines} lines; consider reducing")
+        if lines > 140:
+            warnings.append(f"{p}: {lines} lines; consider reducing")
         for ref in re.findall(r'`(references/[^`]+\.md)`', text):
-            if not (root / skill / ref).exists(): errors.append(f"{p}: missing reference {ref}")
-        if not (root / skill / "agents" / "openai.yaml").exists(): warnings.append(f"{skill}: missing agents/openai.yaml")
+            if not (root / skill / ref).exists():
+                errors.append(f"{p}: missing reference {ref}")
+        if not (root / skill / "agents" / "openai.yaml").exists():
+            warnings.append(f"{skill}: missing agents/openai.yaml")
+
     memory_assets = root / "dida-planning-memory" / "assets" / "memory-categories"
     expected_memory_assets = {
         "长期记忆｜项目规则.md", "长期记忆｜工具与环境.md",
@@ -106,31 +122,65 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         errors.append("missing memory category assets")
     else:
         missing = expected_memory_assets - {p.name for p in memory_assets.glob("*.md")}
-        for name in sorted(missing): errors.append(f"missing memory category asset {name}")
+        for name in sorted(missing):
+            errors.append(f"missing memory category asset {name}")
+
     for doc in ["README.md", "REVIEW_REPORT.md", "SUBAGENT_REVIEW_PROMPT.md"]:
-        if not (root / doc).exists(): errors.append(f"missing root document {doc}")
-    errors.extend(validate_manifest(root))
+        if not (root / doc).exists():
+            errors.append(f"missing root document {doc}")
+
+    manifest_issues = validate_manifest(root)
+    if strict_manifest:
+        errors.extend(manifest_issues)
+    else:
+        warnings.extend(f"release manifest drift: {issue}" for issue in manifest_issues)
 
     scripts = root / "dida-planning-core" / "scripts"
     for py in scripts.rglob("*.py"):
-        try: compile(py.read_text(encoding="utf-8"), str(py), "exec")
-        except Exception as exc: errors.append(f"compile {py}: {exc}")
-    # Single source of truth guard
-    forbidden = ["sqlite", "markdown stays the only source", "markdown-only"]
-    for p in [root/s/"SKILL.md" for s in SKILLS]:
-        if not p.exists(): continue
+        try:
+            compile(py.read_text(encoding="utf-8"), str(py), "exec")
+        except Exception as exc:
+            errors.append(f"compile {py}: {exc}")
+
+    # Guard against the old architecture where a local shadow store was treated
+    # as the business source of truth. Mentioning SQLite/Markdown as technology is
+    # fine; claiming it is authoritative is not.
+    forbidden_patterns = [
+        r"sqlite.{0,40}(唯一|权威|source of truth)",
+        r"(唯一|权威|source of truth).{0,40}sqlite",
+        r"markdown stays the only source",
+        r"markdown-only",
+        r"从本地\s*sqlite\s*数据库.*(直接呈现|作为真值|读取当前任务)",
+    ]
+    for p in [root / s / "SKILL.md" for s in SKILLS]:
+        if not p.exists():
+            continue
         low = p.read_text(encoding="utf-8").lower()
-        for token in forbidden:
-            if token in low: errors.append(f"{p}: forbidden legacy source-of-truth phrase {token}")
+        for pattern in forbidden_patterns:
+            if re.search(pattern, low, flags=re.IGNORECASE):
+                errors.append(f"{p}: forbidden legacy source-of-truth phrase matching {pattern!r}")
+
     return errors, warnings
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(); ap.add_argument("--root", required=True); args = ap.parse_args()
-    errors, warnings = validate(Path(args.root).resolve())
-    for w in warnings: print("WARNING:", w)
-    for e in errors: print("ERROR:", e)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--root", required=True)
+    ap.add_argument(
+        "--strict-manifest",
+        action="store_true",
+        help="Treat MANIFEST.sha256 drift as an error. Use for release/package integrity checks.",
+    )
+    args = ap.parse_args()
+
+    errors, warnings = validate(Path(args.root).resolve(), strict_manifest=args.strict_manifest)
+    for warning in warnings:
+        print("WARNING:", warning)
+    for error in errors:
+        print("ERROR:", error)
     print(f"Validated: {len(SKILLS)} skills; {len(errors)} errors; {len(warnings)} warnings")
     raise SystemExit(1 if errors else 0)
 
-if __name__ == "__main__": main()
+
+if __name__ == "__main__":
+    main()
