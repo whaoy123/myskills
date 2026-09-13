@@ -3,7 +3,7 @@ set -euo pipefail
 SOURCE="$(cd "$(dirname "$0")" && pwd)"
 DESTINATION="${1:-$HOME/.agents/skills}"
 ITEMS=(
-  dida-cli dida-task-capture dida-task-breakdown dida-task-estimator
+  dida-manager dida-cli dida-task-capture dida-task-breakdown dida-task-estimator
   dida-daily-planner dida-task-progress dida-weekly-review
   dida-planning-profile dida-planning-memory dida-planning-core
 )
