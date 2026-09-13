@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Source = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Items = @(
+  "dida-manager",
   "dida-cli",
   "dida-task-capture",
   "dida-task-breakdown",
