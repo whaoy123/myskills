@@ -1,77 +1,104 @@
 ---
 name: dida-planning-memory
-description: Save, retrieve, update, or forget durable planning-related memory in Dida without duplicating task state or profile settings. Use when the user says 记住/保存到记忆/忘掉, when a directly stated stable low-sensitivity fact will materially improve future work, or when another Dida skill needs project rules, tool/environment facts, workflow conventions, or cross-project agreements. Route planning preferences to dida-planning-profile and task-local facts to the owning task.
+description: Save, retrieve, update, or forget durable planning-related rules and background without duplicating current task state or stable scheduling profile settings. Use for explicit long-term project rules, tool/environment facts, reusable workflow conventions, and cross-project agreements. Current task facts belong to TickTick tasks; stable planning preferences belong to dida-planning-profile. Prefer TickTick/滴答清单 MCP or connector tools for storage; use dida-cli only as fallback.
 ---
 
 # Dida planning memory
 
-Maintain durable memory as small Dida records. Dida remains the only business source of truth; never create a parallel editable Markdown memory database.
+Maintain only the durable information that materially improves future planning. This Skill is deliberately narrow: **it is not a second task database and not a substitute for TickTick task inventory.**
 
-## Ownership routing
+## Authority boundary
 
-Before saving, choose the true owner:
+- Current task existence, status, dates, parent/child relationships, progress and completion state → owning TickTick task.
+- Stable scheduling/energy/capacity/mobility preferences → `dida-planning-profile`.
+- Estimate and actual-time evidence → `dida-task-estimator` / `dida-task-progress` / focus records.
+- Cross-project durable rule, tool/environment fact, reusable workflow convention or long-lived agreement → this Skill.
+- Project-specific durable rule → explicit memory/config record scoped to that project, not a duplicate of live task state.
 
-- Stable scheduling, energy, fitness, mobility, timezone, or planning behavior → `$dida-planning-profile`.
-- Current task/project context, progress, completion criteria, or decisions → owning task body/comment.
-- Estimate samples and timing evidence → `$dida-task-estimator` / `$dida-task-progress`.
-- Cross-project rule, tool/environment fact, reusable workflow, or durable agreement → this skill.
-- Project-specific durable rule → a `role: memory` child under `系统配置`'s `长期记忆｜项目规则` (with `memory_scope: project` and `applies_to: PROJECT_ID`). Never create memory tasks inside business/project task trees.
+Model-native memory may provide background, but higher-level planning Skills must never use it as proof that the current task list is complete.
 
-Never duplicate one fact across owners merely for convenience.
+## Storage path
+
+When a TickTick/滴答清单 MCP or connector is available, use it for searching, creating, updating and verifying durable memory records. `dida-cli` is used only when no connector is available.
+
+Do not create a parallel editable Markdown/SQLite memory database.
 
 ## Save policy
 
-1. Explicit “记住/保存/加入记忆” request: save it. If sensitive, store only the minimum wording requested and set `privacy: summary_only` when appropriate.
-2. If wording is ambiguous about whether the user wants persistence, ask once before saving.
-3. Explicit “忘掉/删除这条记忆”: resolve the exact owner and delete/update it. Do not merely add a contradictory memory.
-4. Directly stated, stable, future-useful, low-sensitivity fact: may be saved automatically, then report what and where was saved.
-5. Inferred pattern, uncertain stability, or possible conflict: ask before saving.
-6. Do not save temporary details, trivial facts, one-day exceptions, copied text being translated/rewritten, or information already owned by a task/profile/estimate record.
-7. Do not automatically save sensitive personal attributes or health/private-life details. Save them only on an explicit request and minimize content.
+1. Explicit “记住/保存/加入记忆” request → route to the correct owner and save if appropriate.
+2. Stable low-sensitivity fact that is clearly durable and future-useful → may be saved when the environment/policy permits, but report what was stored.
+3. Ambiguous persistence intent → ask once before saving.
+4. Inferred pattern, uncertain stability or possible conflict → do not silently persist.
+5. Temporary details, one-day exceptions, ordinary task status, copied text being transformed, and facts already owned by a task/profile → do not store here.
+6. Sensitive personal facts → store only on explicit request and minimize wording.
 
-Use `dida-planning-core/scripts/memory_policy.py` for the final save/ask/route/skip decision after the semantic owner is identified.
+## Ownership routing
 
-## Storage structure
+Before every write, ask “哪个对象才是真正 owner？”
 
-Global memory categories live as parent NOTE tasks in `系统配置`:
+- “以后周三晚上不要安排科研” → profile
+- “这个 PCB 已经布完线” → PCB task/progress
+- “这个项目所有原始设计方案都不能覆盖，只改修改稿” → durable project rule
+- “Windows + WSL，某工具只在 WSL 中可用” → tool/environment memory when genuinely reusable
+- “今天做到 22:00” → one-day exception, not memory
+
+Never duplicate one fact across owners just for convenience.
+
+## Recommended storage structure
+
+If the existing runtime schema uses `系统配置` memory categories, keep using them:
 
 - `长期记忆｜项目规则`
 - `长期记忆｜工具与环境`
 - `长期记忆｜工作方式`
 - `长期记忆｜通用约定`
 
-Each memory is a separate child task/NOTE with:
+Each memory should be a small independent NOTE/task record with:
 
-- concise title beginning `记忆｜`;
-- current fact and applicability in the natural body, normally under 300 Chinese characters;
-- `role: memory`, `required_for_parent: false`, no dates, no estimate, no status;
-- source/confidence/scope fields in the Planner block;
-- change history in comments.
+- concise `记忆｜...` title;
+- current fact and applicability;
+- no execution date or estimate;
+- explicit scope/source/confidence where the runtime schema supports it;
+- change history in comments rather than duplicate records.
 
-All memories (including project-specific rules) must be stored exclusively under the memory category parents in the `系统配置` list. Never create memory tasks inside project/action task trees, keeping project lists 100% pure action items.
+This structure is optional compatibility with the existing system; do not create memory categories inside business task trees.
 
-## Initialize
+## Save / update
 
-1. Resolve or create `系统配置` through `$dida-cli`.
-2. Create only missing category parents from `assets/memory-categories/`.
-3. Read back IDs and write them into `系统状态｜Schema与迁移版本`.
-4. Never overwrite user-edited category notes.
-
-## Save or update
-
-1. Search the exact project/category and semantically similar memory titles before creating.
-2. If equivalent, update the existing record rather than duplicate it.
-3. If contradicted, preserve a comment explaining the change, then replace the current body.
-4. Use `memory_source: explicit|durable_fact|confirmed_inference` and `memory_confidence: high|medium`.
-5. Read back and report the saved memory and owner. Never say “记住了” before the write is verified.
+1. Search only the relevant category/project scope for semantically equivalent records.
+2. If equivalent, update the existing record rather than create a duplicate.
+3. If contradicted, preserve a short change-history comment when useful, then update the current fact.
+4. Write through MCP/connector and read back.
+5. Only after successful read-back report the durable rule as stored.
 
 ## Retrieve
 
-Read only the exact project memories and relevant global category. Do not load all memory categories for ordinary operations. State which remembered rule materially affected the action when helpful.
+Retrieve the smallest relevant scope. Ordinary task operations should not load all memory categories.
 
-## Forget
+When a memory rule materially changes a plan, higher-level Skills may mention it, but the live task inventory still comes from TickTick.
 
-Resolve by ID, exact title, owner, and content. Delete the exact memory when authorized. If the fact is owned by profile/task/estimate data, route the deletion to that owner. When several candidates match, ask which one rather than deleting broadly.
+## Forget / change
+
+Resolve the exact owner first.
+
+- If the information is owned by a live task → update/delete there.
+- If owned by profile → route to `dida-planning-profile`.
+- If owned by this Skill → update/delete the exact durable memory record.
+
+Do not “forget” a fact by merely adding a contradictory memory.
+
+## Global planning interaction
+
+This Skill does **not** participate in completeness checks by returning “everything remembered”. For global daily/weekly planning, `dida-manager` / `dida-daily-planner` must first enumerate all unfinished TickTick tasks. Memory is loaded only afterward when a specific project rule is relevant.
+
+## Initialize
+
+If the runtime already has memory categories, reuse them. If initialization is genuinely needed:
+
+1. resolve/create the configured system list through MCP/connector;
+2. create only missing category parents;
+3. preserve user-edited category notes;
+4. use CLI only as fallback when no connector is available.
 
 ## References
 
