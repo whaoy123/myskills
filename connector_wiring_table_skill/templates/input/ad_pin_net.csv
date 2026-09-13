@@ -1,3 +1,4 @@
 BoardConnector,BoardPin,NetName
-U1,7,POR_A
-U1,8,POR_B
+J1,1,POR_A
+J1,2,SIG_A
+J1,25,GND

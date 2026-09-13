@@ -1,0 +1,2 @@
+SheetName,BoardConnector,BoardConnectorModel,BoardGender,MatingConnectorModel,MatingGender,TerminalModel,MatesTo,Point2NodeHeader,Title,Description
+J1线缆,J1,DB25-F-25,母头,DB25-M-25,公头,,下游设备,端子号,J1 板端 DB25-F-25 对插 DB25-M-25 至自由端端子,自由端端子型号待确认

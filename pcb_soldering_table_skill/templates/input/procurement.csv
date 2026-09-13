@@ -1,3 +1,4 @@
-Model,PurchasedQty,ReceivedQty,Source,Notes
-RVT1H1R0M0405,20,20,"采购表+发票",
-OPA197ID,0,,"采购表+发票","未发现采购记录"
+Model,StockQty,PurchasedQty,ReceivedQty,ReservedQty,TargetMultiplier,Source,Notes
+NEW-R-10K,0,2,,0,1.2,"采购表","待到货"
+RVT1H1R0M0405,0,20,20,0,1.2,"采购表+发票",
+OPA197ID,0,0,,0,1.2,"采购表+发票","未发现采购记录"

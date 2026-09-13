@@ -1,3 +1,0 @@
-SheetName,CableEnd,CablePin,NetName,TargetBoardConnector,BoardPinHint,CableConnectorModel,Gender,MatesTo
-AVRplus方向,L1,1,POR_A,U1,,UTG62448SN,母头,AVRplus
-AVRplus方向,L1,2,POR_B,U1,,UTG62448SN,母头,AVRplus

@@ -1,0 +1,4 @@
+SheetName,Order,Topology,Point1Code,Point1Node,Point2Code,Point2Node,BoardEndpoint,BoardConnector,BoardPinHint,NetName,PairGroup,CoreRole,FanoutId,WireType,LabelText,Include,Notes
+J1线缆,1,direct,DB25-M-25,,端子组,T01,1,J1,,POR_A,,normal,,0.5,,yes,
+J1线缆,2,twisted_pair,DB25-M-25,,端子组,T02-S,1,J1,,SIG_A,P01,signal,,0.5,,yes,
+J1线缆,3,twisted_pair,DB25-M-25,,端子组,T02-G,1,J1,,GND,P01,return,,0.5,,yes,

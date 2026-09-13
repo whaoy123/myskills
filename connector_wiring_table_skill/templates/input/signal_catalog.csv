@@ -1,3 +1,4 @@
-NetName,SignalDefinition,WireType,ElectricalAttribute,Include
-POR_A,POR Phase A,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
-POR_B,POR Phase B,0.5,"300/600Vac，360–2000Hz，10mA，隔离输入",yes
+NetName,SignalDefinition,WireType,ElectricalAttribute
+POR_A,POR A 相信号,0.5,
+SIG_A,信号 A,0.5,
+GND,信号地,0.5,
