@@ -1,194 +1,81 @@
 ---
 name: dida-task-breakdown
-description: Decompose a Dida project, phase, or oversized task into executable child work with clear outputs, completion criteria, dependencies, and clean hierarchy. Use for 拆任务、细化项目、建立子任务、整理任务池、识别前置依赖. Read the current Dida tree and relevant project rules instead of hard-coding project structure. Route duration estimation to dida-task-estimator and schedule planning to dida-daily-planner. Prefer TickTick/滴答清单 MCP or connector tools for runtime reads/writes; use dida-cli only as fallback.
+description: Split Dida projects or oversized work by observable deliverables, scope, acceptance and dependencies. Reuse the existing hierarchy; weekly commitments are metadata rather than new parent trees. Prefer MCP/connectors; use dida-cli only as fallback. Do not create execution time blocks.
 ---
 
-# Dida Task Breakdown
+# 任务拆分
 
-把一个过大的项目、阶段或任务拆成**可执行、可验收、依赖关系清楚**的子工作。
+产物 → 验收条件 → 必要工作 → 依赖。先定义成果，再决定是否需要新任务。
 
-本 Skill 回答：
+## 读取范围
 
-> 这件事应该拆成哪些工作，做到什么算完成，它们之间什么先做、什么后做。
+局部拆分先读取 owner、children、同级节点、DoD 和相关依赖/项目规则。全局重排才通过 `dida-manager` 的完整扫描。
 
-它不负责估时和具体排钟点。
+MCP/连接器优先，文件和记忆不替代当前任务结构。
 
-## 职责边界
+## 层级
 
-负责：
+project 是长期项目；phase 是阶段；task 是可执行且可验收的工作。
 
-- 判断当前节点应保持为 `project`、`phase` 还是拆成 `task`；
-- 从最终产出和完成标准反推合理子任务；
-- 保持父子层级清楚；
-- 建立必要的 hard / soft / external-wait 依赖；
-- 发现缺失前置工作和阻塞项；
-- 用户授权时创建或调整子任务；
-- 将稳定的叶子任务交给 `dida-task-estimator`。
+旧 `block` 只为历史兼容保留，不再创建。周承诺不是新层级，不新增周计划父任务。
 
-不负责：
+## 是否拆分
 
-- 根据静态 Skill 硬编码当前用户项目树；
-- 自己拍一个估时数字；
-- 生成每天几点到几点的执行块；
-- 机械创建大量微任务；
-- 静默删除、改名、移动或重排用户已有重要任务。
+- 多个独立产物、明显串行依赖、范围难以一句话界定时拆分。
+- 同一动作内部“打开文件/修改/保存”不要拆成任务。
+- 简单检查点用原 task 的 checklist，不堆微任务。
+- 现有结构能复用就复用，不静默重命名或跨项目移动。
 
-## 运行态真值源
+## 按产物切分
 
-项目结构必须从当前 TickTick/滴答运行态读取。
+每个 task 至少有：具体输出、范围、可判定 DoD、验收方式和必要前置。
 
-优先读取：
+“看完全部手册”往往太宽，可拆成“一组已选器件的供电/接口约束表及未决项”。“继续写代码”应明确哪个模块、哪些场景通过验证。
 
-1. 当前目标父任务及其正文/Planner 信息；
-2. 已有 children 和同级节点；
-3. 与拆分直接相关的标签/正文协议；
-4. 依赖协议；
-5. 会改变拆分结果的项目规则；
-6. 已批准的工程 handoff（如果存在）。
+用真实产物判断大小，不按“项目名相同”合并两个独立工作量。只有一个共用产物时可以跨项目引用支撑任务，保留原 parentId 并按实际工作去重。
 
-有 MCP/连接器时直接使用它；没有时才使用 `dida-cli` fallback。
+## Gate 驱动拆分
 
-不要为了拆一个局部任务加载全部 Dida、全部 memory 或全部 profile。只有用户同时要求“全局整理/安排”时，才由 `dida-manager` 触发全量扫描 Gate。
+当后续工作必须等前一阶段结论冻结时，用持久依赖表达 gate，而不是靠周计划文字记住顺序。
 
-## 层级模型
+典型主干：关键器件/方案确认 → 手册约束核对 → 外部/老师功能确认 → 需求冻结 → 原理图/实现。
 
-```text
-project  → 长期结果 / 大项目
-phase    → 一个明确阶段或主要交付物
-task     → 可执行工作，有独立完成标准
-block    → 某次实际执行时段，由 planner 按需产生
-```
+- gate 本身必须有可验收产物，例如“需求冻结清单 + 未决项归零/明确延期”。
+- 下游 task 用 hard `finish_to_start` 指向 gate；gate 未满足时不视为 ready。
+- 只有真实约束才设 hard；“最好先做”仍是 soft。
+- 下游日期不要因为一个乐观估时提前生成；已有外部 hard deadline 保持原样。
 
-Breakdown 默认只创建 `phase` 和 `task`。
+## 依赖
 
-## 固定工作流程
+- finish_to_start：前置成果完成才开始。
+- start_to_start：前置已开始即可。
+- external_wait：等物料、反馈、审批等明确条件。
+- not_before：不能早于指定日期。
 
-### Step 1 — Resolve target
+只有真实限制才设 hard dependency；建议顺序写 soft。写前检测环路，缺前置 ID 时记录未决项，不猜 ID。
 
-通过 MCP/连接器唯一解析目标父任务并读取当前状态：
+## 周交付切片
 
-- 当前目标是什么；
-- 当前角色；
-- 已有哪些 children；
-- 哪些已完成、进行中、waiting；
-- 是否已有截止、交付物或外部依赖。
+若总任务适合跨周保留，可在其上记录本周范围和标准，不要求拆出同名副本。
 
-已有结构能复用就复用，不从零重建。
+达到本周标准不等于整个 task/phase 完成。周交付所需的支撑工作必须与本周范围一致；引用整项估时会明显过大时，先明确本周剩余工作量，不能默默打折。
 
-### Step 2 — Decide whether decomposition is needed
+只有当本周切片需要形成长期可复用的独立任务/依赖时才改持久层级；否则由 `dida-weekly-delivery` 只写周合同。
 
-满足任一条件时通常需要继续拆：
+## 估时和写回
 
-- 包含多个可独立验收交付物；
-- 完成标准无法一句话判断；
-- 内部存在明确前后依赖；
-- 任务太大，无法作为少数自然执行单元完成；
-- 标题只是“继续做 / 完善 / 学一下 / 处理一下”。
+范围明确后调用 `dida-task-estimator`。未知流程先定义可验收的一轮探索，再估这一轮，不承诺整个设计周期。
 
-不要继续拆的情况：
+只讨论方案时不写；用户要求拆到滴答时：读取 → 去重 → 仅改授权字段 → 写回 → 重新读取 owner/children。
 
-- 一个动作已有单一输出和明确 DoD；
-- 再拆只会得到“打开文件 / 修改 / 保存”这类机械步骤；
-- 小步骤更适合 task body checklist。
+保留日期、内容、附件及未知字段；CHECKLIST 的 desc/items 按实际 schema 更新。不为凑格式删除原任务。
 
-### Step 3 — Decompose from outputs
+## 验收
 
-按**可交付结果**拆，不按活动词堆任务。
-
-推荐：
-
-```text
-完成 RX 接口定义并确认握手语义
-完成 RX RTL 并通过 Pre-TB Review
-完成 RX Verification Plan
-完成 RX TB 与回归
-```
-
-避免：
-
-```text
-看代码
-想方案
-写一点
-再检查
-继续优化
-```
-
-每个叶子任务至少有：明确动作、主要输出、可判定 DoD，以及必要依赖/阻塞条件。
-
-### Step 4 — Keep hierarchy shallow
-
-默认优先：
-
-```text
-project
-└─ phase
-   └─ task
-```
-
-只有真实工程结构需要时才增加层级。
-
-### Step 5 — Name from runtime context
-
-命名规则从当前系统协议和现有同级任务动态读取。如果当前约定是 `父任务简称｜具体任务`，复用已有简称，不在 Skill 中维护固定项目映射表。
-
-### Step 6 — Add DoD and dependency
-
-DoD 回答“什么证据出现后可以完成”。
-
-依赖只记录真正影响执行顺序的关系：
-
-- 必须先完成 → hard finish-to-start；
-- 等外部回复/物料/审批 → external wait；
-- 只是推荐顺序 → 不伪造成 hard dependency。
-
-新增依赖前检查环路。
-
-### Step 7 — Route estimation
-
-Breakdown 不自己猜时间：
-
-```text
-Breakdown → 明确内容和 DoD
-Estimator → 计算 calendar occupancy + confidence
-```
-
-Estimator 判断范围仍然过大时，再回来拆。
-
-### Step 8 — Preview vs write
-
-用户只是讨论“应该怎么拆” → 只给方案。
-
-用户明确说“拆到滴答 / 直接改任务” → 授权创建必要 children。
-
-以下变化不要静默执行：删除已有任务、跨项目移动重要任务、改硬截止、大范围重命名、覆盖进行中的结构。
-
-### Step 9 — Write and read back
-
-应用时：
-
-1. MCP/连接器读取当前对象；
-2. 只创建/更新本次拆分需要的字段；
-3. 保留用户已有正文、日期、标签和未知字段；
-4. 防止重复创建同名同义 child；
-5. 写入后重新读取 parent + children；
-6. 检查层级、标题、DoD、依赖和估时信息是否保存。
-
-只有没有 MCP/连接器时，才把同一流程交给 `dida-cli` fallback。
-
-## 完成 Gate
-
-1. 父任务主要交付物已被 children 覆盖；
-2. 每个叶子任务有可判定 DoD；
-3. 没有明显不可执行的“继续做/完善一下”叶子；
-4. 必要依赖已表达且无环；
-5. 没制造重复任务；
-6. 叶子已估时，或明确为何暂时无法估；
-7. 若写入 Dida，已 read-back 验证。
+子任务覆盖阶段成果、每项有 DoD、依赖无环、无重复、估时有依据或标 unknown、实际写入已回读。
 
 ## References
 
 - `references/hierarchy-and-dependencies.md`
 - `dida-task-estimator`
-- TickTick/滴答清单 MCP 或等价连接器 — 首选读写
-- `dida-cli` — 无连接器环境下 fallback
+- `dida-weekly-delivery`

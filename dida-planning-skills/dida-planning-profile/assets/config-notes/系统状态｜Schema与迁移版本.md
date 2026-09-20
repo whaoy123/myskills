@@ -1,7 +1,8 @@
 # 系统状态｜Schema与迁移版本
 
-- system_version: 1.1.0
+- system_version: 1.5.0
 - planner_schema: 1
+- weekly_delivery_schema: 1
 - planner_event_schema: 1
 - migration_status: not_started
 - memory_schema: 1
@@ -9,8 +10,7 @@
 
 ## 配置 NOTE IDs
 
-- availability_note_id: null
-- mobility_note_id: null
+- weekly_delivery_policy_note_id: null
 - estimation_note_id: null
 - body_protocol_note_id: null
 - dependency_note_id: null
@@ -27,7 +27,6 @@ schema: 1
 role: config
 progress: 0
 date_semantics: none
-mobility: fixed
 privacy: normal
 estimate_confidence: high
 dependency_mode: all

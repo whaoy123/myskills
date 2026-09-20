@@ -23,4 +23,4 @@ Each comment or queued write may include `operation_id`. Before retrying an ambi
 
 ## Estimated duration
 
-Planner estimated duration means calendar occupancy including normal short rests. Focus minutes, other active effort, AI-parallel time, and end-to-end elapsed time are recorded separately in completion comments.
+Planner/native estimated duration represents estimated **human task effort**. It is not a time block or calendar occupancy. Completion comments may separately record `actual_effort_minutes`, focus minutes, other active effort, AI-parallel time and end-to-end elapsed time.

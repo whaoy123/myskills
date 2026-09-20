@@ -32,7 +32,7 @@ A category is only one feature. Familiarity and work mode often matter more than
 - parallel: AI can run while the user does other work.
 - review_only: AI drafts and user mainly reviews.
 
-Only user-blocking time enters calendar occupancy. AI parallel elapsed time is stored separately.
+Estimate human effort only. AI parallel elapsed time is stored separately and must not be double-counted as user effort.
 
 ## Base methods
 
@@ -41,8 +41,8 @@ Output scale should normally be represented in components or PERT values. Set `b
 - small/familiar: direct or analogous estimate.
 - decomposable: sum child/component estimates.
 - uncertain: Beta-PERT `(O + 4M + P) / 6` before historical correction.
-- travel/queue: outbound + queue + on-site + return + uncertainty buffer.
+- travel/queue: count the user's active travel/on-site/queue burden as effort where applicable; keep external lead time separate.
 
 ## Confidence
 
-Confidence depends on scope clarity, familiarity, number and similarity of samples, and whether actual time is reliably separated from overlapping work.
+Confidence depends on scope clarity, familiarity, number and similarity of samples, and whether actual human effort is reliably separated from overlapping/parallel work.

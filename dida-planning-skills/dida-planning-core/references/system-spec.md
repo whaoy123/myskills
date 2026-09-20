@@ -1,19 +1,22 @@
-# Frozen system contract v1.2
+# Task-planning contract v1.5.0
 
-- Dida is the only task, profile, and durable planning-memory business source of truth.
-- Lists are domains; projects are parent tasks.
-- Four work levels: project, phase, task, block. Memory uses separate non-work roles: memory_category and memory.
-- Native Dida fields own title, content, parent, priority, dates, recurrence, estimated duration, and completion.
-- Planner body block owns progress, date semantics, weekly mainline commitment, mobility, privacy, confidence, dependencies, and memory metadata.
-- Weekly mainlines are 2–4 user-selected work tasks, classified as must, should, or candidate. Their task-local Planner fields are the only current-week commitment state; no weekly summary task or local editable plan is created.
-- A weekly commitment is a pair on a work role only: Monday `week_start: YYYY-MM-DD` and `weekly_commitment: must|should|candidate`. On a week roll, stale or malformed work-task pairs are cleared from the owning Dida task's Planner block; native dates, especially hard deadlines, are untouched.
-- Movable work is assessed as weekly total occupancy. Exact day/hour blocks are reserved for fixed items, started tasks, explicit requests, or deadline rescue.
-- Comments are append-only historical events.
-- Stable planning preferences belong to `dida-planning-profile`; durable cross-project facts/rules belong to `dida-planning-memory`; task-local facts remain on the owning task; timing samples belong to estimator/progress.
-- Explicit save/forget requests are honored. Stable, directly stated, low-sensitivity, future-useful facts may auto-save with visible confirmation. Inferred or sensitive facts require confirmation unless explicitly requested.
-- Do not save temporary/trivial information or text supplied only for translation/rewriting.
-- Hard deadlines are never changed automatically.
-- Personal calendar occupancy cannot overlap.
-- No abandoned state; unnecessary tasks may be deleted.
-- Inbox is organized only on explicit request.
-- Current-location timezone is used automatically.
+- TickTick/Dida is the only current-task business source of truth. Skill templates and local computation snapshots do not replace it.
+- New work uses project → phase → task. Legacy block/execution-window/mobility metadata remains readable only for compatibility; no new scheduling blocks are created.
+- Native task fields own title, content/desc/items, parent, dates and completion. Do not invent unsupported connector parameters.
+- Planner schema remains 1. Existing week_start and weekly_commitment remain backward compatible.
+- Optional weekly_delivery is a version-1 JSON object on one existing task or phase, with outcome, artifact, scope, criteria, verification, support references, exclusions, target and evidence.
+- Weekly must/should are promises, not external hard deadlines. Candidate is outside core commitment counts.
+- Default core cap is two; zero/one is valid. Overrides are explicit. Obligations still consume effort but do not automatically become another mainline.
+- A weekly slice may be delivered while its owning project/phase/task remains unfinished.
+- If active core work contains no growth deliverable, record a concrete deferral reason and a resume/re-evaluation condition rather than silently deferring long-term development.
+- Evidence can be direct user confirmation, an observed artifact, a test log or a demonstration. Never relabel user_report as tool verification.
+- Progress owns point-in-time task facts and current acceptance evidence; weekly review owns cross-deliverable end-of-week audit, archive and rollover.
+- Breakdown owns durable hierarchy and hard gates; weekly-delivery selects a temporary weekly slice and should not create another hierarchy unless a missing durable gate/task is genuinely needed.
+- Estimator owns human task effort. New estimates use `estimated_effort_minutes`; new completion evidence uses `actual_effort_minutes`. Old `calendar_minutes` is read-only compatibility input.
+- Hardware/design gates should follow real prerequisites such as critical-component/solution confirmation → datasheet constraints → external functional confirmation → requirements freeze → schematic/implementation. Do not date downstream work before the gate is resolved unless an independent external deadline exists.
+- Archive original promises before replacing or clearing them. Failed archive means no clear. Native dates do not roll automatically.
+- Estimates and user-provided effort budgets do not authorize calendar scheduling. No Outlook/calendar reads, availability windows, personal capacity model or clock blocks.
+- Target dates, hard deadlines and suggested/latest-safe starts have different semantics. Latest safe start is unknown without an adequate elapsed-time basis; human-effort hours do not directly imply calendar days.
+- Comments are append-only historical evidence. Stable task-planning configuration lives in profile; current weekly scope lives on its owner.
+- Preserve unknown Planner fields, unrelated content and native fields. Read → write → read-back; ambiguous writes are inspected before retries.
+- Respect the user's confirmed timezone for date interpretation only. Do not infer a new task timezone from a VPN location.

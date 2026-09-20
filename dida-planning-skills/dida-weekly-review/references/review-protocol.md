@@ -1,27 +1,31 @@
 # Weekly review protocol
 
-## Risk checks
+Compare the original promise with evidence, not the number of checkboxes or hours alone.
 
-- Overdue hard deadline.
-- Remaining estimated occupancy exceeds capacity before deadline.
-- Hard dependency unresolved near the last viable start date.
-- Parent task with no child progress for seven or more days.
-- Started task with stale `状态/进行中` and no recent focus/comment evidence.
-- Repeated task skipped repeatedly.
+## Results
 
-## Estimation metrics
+Use delivered / not_delivered / blocked / cancelled / unverified. Preserve completed partial work and remaining criteria. Separate delivery status from native owner completion; a weekly slice may finish while its phase remains active.
 
-For eligible completed samples in chronological backtesting:
+## Progress versus review
 
-- MAE in minutes.
-- Median absolute log error or typical factor error.
-- Underestimation rate.
-- Coverage achieved for 70%, 85%, and 90% target classes.
-- Average extra buffer used.
-- Comparison with no calibration, category median, and nearest similar-task baselines.
+Progress events are point-in-time facts and evidence. Weekly review is the end-of-week aggregate audit: reconcile every original core commitment, then archive and decide what happens next. Do not rewrite the original contract to make partial work look delivered.
 
-Do not use a completed task to train the estimate that is evaluated for that same task.
+## Risk pass
 
-## Next-week pool
+Scan all unfinished business tasks, including undated and far-future work. Check deadlines, lead time, dependencies, external waits, stale estimates and latest safe start. Report unknown inputs. Never invent clock availability or silently move hard deadlines. Respect persistent project gates: downstream work is not ready until its hard predecessor is satisfied.
 
-Recommend a pool larger than the final schedule but constrained by capacity. Identify hard commitments, high-priority unblockers, protected fitness, and movable candidates. Actual dates are applied only through the daily/weekly planning write flow.
+## Effort
+
+Count unique leaf tasks and necessary obligations. Never count both a parent rollup and its children, or ignore a long trip because it is a one-off. User-supplied effort limits are budgets, not calendar schedules. Without a credible budget/estimate, feasibility stays unknown.
+
+## Growth continuity
+
+If no growth deliverable existed, retain the documented deferral reason and resume condition in the review. Re-evaluate the condition next week; repeated deferral is a planning risk, not an implicit permanent cancellation.
+
+## Metrics
+
+Report original commitments, accepted outputs, remaining scope, interruptions and causes. Candidate tasks do not enter the promised denominator; cancelled/blocked/unverified are shown separately, not converted into successes. Effort calibration needs prior estimate plus comparable actual-effort evidence; do not train on the same completion being scored.
+
+## Rollover
+
+Archive owner-local contract and evidence with an idempotency key first. Only after successful read-back may the old weekly markers be cleared. Keep native dates and parent relations unchanged. Re-select rather than automatically carry everything forward.

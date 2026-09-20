@@ -1,0 +1,82 @@
+{
+  "week_start": "2026-09-21",
+  "as_of": "2026-09-20",
+  "inventory_complete": true,
+  "effort_budget_minutes": 480,
+  "obligation_task_ids": [
+    "example-board-test"
+  ],
+  "tasks": [
+    {
+      "id": "example-hardware-owner",
+      "role": "phase",
+      "completed": false,
+      "week_start": "2026-09-21",
+      "weekly_commitment": "must",
+      "weekly_delivery": {
+        "schema": 1,
+        "slot": "work",
+        "outcome": "PHY接口与供电约束核对表",
+        "artifact": "PHY接口与供电约束核对表",
+        "scope": "已约定的一轮核对或正常路径，不包括完整系统实现",
+        "criteria": [
+          "产物内容完整可读",
+          "完成一轮检查并列出未决项"
+        ],
+        "verification": "读取产物并由用户确认",
+        "support_task_ids": [
+          "example-phy-review"
+        ],
+        "exclusions": [
+          "不新增完整项目范围"
+        ],
+        "target_date": "2026-09-27",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "example-pcie-owner",
+      "role": "task",
+      "completed": false,
+      "remaining_minutes": 150,
+      "blocked": false,
+      "week_start": "2026-09-21",
+      "weekly_commitment": "should",
+      "weekly_delivery": {
+        "schema": 1,
+        "slot": "growth",
+        "outcome": "PCIe正常收发路径图与口述演示",
+        "artifact": "PCIe正常收发路径图与口述演示",
+        "scope": "已约定的一轮核对或正常路径，不包括完整系统实现",
+        "criteria": [
+          "产物内容完整可读",
+          "完成一轮检查并列出未决项"
+        ],
+        "verification": "读取产物并由用户确认",
+        "support_task_ids": [],
+        "exclusions": [
+          "不新增完整项目范围"
+        ],
+        "target_date": "2026-09-27",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "example-phy-review",
+      "role": "task",
+      "parent_id": "example-hardware-owner",
+      "completed": false,
+      "remaining_minutes": 180,
+      "blocked": false
+    },
+    {
+      "id": "example-board-test",
+      "role": "task",
+      "completed": false,
+      "remaining_minutes": 90,
+      "blocked": false
+    }
+  ]
+}

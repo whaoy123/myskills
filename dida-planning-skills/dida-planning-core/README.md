@@ -1,20 +1,12 @@
-# DIDA Planning Core
+# DIDA Task Planning Core
 
-This directory is shared deterministic support code for the nine user-facing skills. It is intentionally not a skill and has no `SKILL.md`.
+Deterministic helpers for task contracts, dependencies, estimates, progress, conflict merges, weekly delivery checks and history. Not a second task database or calendar scheduler.
 
-Scripts read JSON from files/stdin and write JSON to stdout. They do not persist Dida task copies. The only persistent local state allowed is:
+New module: `scripts/weekly_delivery.py` validates a complete, normalized task snapshot; checks weekly scope/acceptance, the core cap, task references, obligations, unique effort and unknown risk inputs. It produces no remote mutations. `prepare_week_rollover` prepares an archive and a conditional clear patch; execution still requires an authorized connector operation.
 
-- rebuildable estimation index;
-- pending sync operation queue;
-- migration preview/mapping files.
-
-Run:
+Planner schema 1 remains compatible; `weekly_delivery` is an optional versioned JSON extension. Unknown fields survive read/patch/render.
 
 ```bash
-python scripts/package_validator.py --root ..
+python scripts/package_validator.py --root .. --strict-manifest
 python -m unittest discover -s tests -v
 ```
-
-Memory support includes `memory_policy.py` for deterministic save/ask/route/skip policy and `migration/classify_legacy_memory.py` for preview-only legacy memory classification.
-
-Weekly mainline support is provided by `weekly_capacity.py`. It evaluates selected task-local weekly commitments against weekly capacity and a reserve ratio, reports estimate/dependency/deadline risks, and returns stale commitment clear patches without storing Dida data locally. Run `python scripts/weekly_capacity.py --help` for the authoritative CLI.

@@ -88,20 +88,20 @@ Reusable Codex and AI Agent skills for hardware design, RTL development, technic
 | [markitdown](markitdown/SKILL.md) | Wraps Microsoft's MarkItDown to convert PDF, Word, PowerPoint, Excel, images, audio, HTML, archives, EPUB, and related inputs into LLM-friendly Markdown. |
 | [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | Uses the current conversation as the orchestrator for Explorer, Worker, Tester, and Reviewer agents, with task-topology planning, parallel execution, repair loops, independent review, and final acceptance. |
 
-### 日程管理 / Dida Planning (滴答清单)
+### 任务规划 / Dida Weekly Delivery (滴答清单)
 
 | Skill | Description |
 |-------|-------------|
+| [dida-weekly-delivery](dida-planning-skills/dida-weekly-delivery/SKILL.md) | 在现有任务上定义和验收周交付物；默认最多两项，保留依赖、投入与证据。 |
 | [dida-cli](dida-planning-skills/dida-cli/SKILL.md) | 通过本地 DIDA CLI 读写滴答清单/Dida365 的任务、清单、标签、专注记录、习惯与倒计时。 |
-| [dida-daily-planner](dida-planning-skills/dida-daily-planner/SKILL.md) | 构建和修订每日时间块日程，处理固定块、受保护块、依赖、容量、休息和重排。 |
-| [dida-planning-core](dida-planning-skills/dida-planning-core/README.md) | Dida 系列共享核心，提供任务字段契约、调度、依赖、进度、估算、记忆策略、容量分析、迁移脚本与测试。 |
+| [dida-planning-core](dida-planning-skills/dida-planning-core/README.md) | Dida 系列共享核心，提供任务字段契约、周交付验收、依赖、进度、估算、记忆策略、迁移脚本与测试。 |
 | [dida-planning-memory](dida-planning-skills/dida-planning-memory/SKILL.md) | 保存、检索、更新和遗忘 Dida 规划记忆。 |
-| [dida-planning-profile](dida-planning-skills/dida-planning-profile/SKILL.md) | 初始化、检查和更新规划 profile，包括工作时长、精力、移动权限、估时覆盖、任务体/标签协议和时区。 |
+| [dida-planning-profile](dida-planning-skills/dida-planning-profile/SKILL.md) | 初始化、检查和更新任务规划 profile，包括周交付上限、用户给定投入预算、估时与任务体/依赖协议。 |
 | [dida-task-breakdown](dida-planning-skills/dida-task-breakdown/SKILL.md) | 将父任务拆解为阶段、可执行子任务、完成标准和依赖。 |
 | [dida-task-capture](dida-planning-skills/dida-task-capture/SKILL.md) | 将任务、想法、提醒和项目捕获到滴答清单。 |
-| [dida-task-estimator](dida-planning-skills/dida-task-estimator/SKILL.md) | 估算和重估任务的日历占用与风险缓冲。 |
-| [dida-task-progress](dida-planning-skills/dida-task-progress/SKILL.md) | 管理任务开始、暂停、等待、恢复、进度更新、完成和删除，并记录实际时间证据。 |
-| [dida-weekly-review](dida-planning-skills/dida-weekly-review/SKILL.md) | 执行周复盘，检查逾期、截止风险、停滞父任务、等待依赖、估时表现、容量和下周任务池。 |
+| [dida-task-estimator](dida-planning-skills/dida-task-estimator/SKILL.md) | 估算和重估任务的人工投入与风险缓冲。 |
+| [dida-task-progress](dida-planning-skills/dida-task-progress/SKILL.md) | 记录任务进度、等待、完成、当前周交付证据和实际人工投入。 |
+| [dida-weekly-review](dida-planning-skills/dida-weekly-review/SKILL.md) | 执行周复盘，按原验收标准核对交付、偏差、截止/依赖风险并重新选择下周承诺。 |
 
 ---
 

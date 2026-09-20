@@ -148,7 +148,7 @@ After the user approves:
    - `dida-task-breakdown`;
    - `dida-task-estimator`;
    - `dida-task-capture`;
-   - then `dida-daily-planner` when scheduling is requested.
+   - then `dida-weekly-delivery` when weekly deliverables are requested.
 
 The bridge deliberately leaves estimate/date/priority empty so Research does not take ownership from Dida.
 

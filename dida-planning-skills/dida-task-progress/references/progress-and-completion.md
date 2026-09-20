@@ -20,7 +20,7 @@ Use `dida-planning-core/scripts/progress_engine.py`. Required children use `sum(
 event: completed
 operation_id: <uuid>
 prior_estimate_minutes: 90
-calendar_minutes: 110
+actual_effort_minutes: 110
 focus_minutes: 80
 other_active_minutes: 30
 ai_parallel_minutes: 40
@@ -29,7 +29,9 @@ included_in_estimation: true
 note: final review took longer than expected
 ```
 
-Unknown numeric values are omitted or written `null`; never fabricate them. `included_in_estimation: true` requires a reliable prior estimate, matching task scope, and reliable calendar occupancy.
+`actual_effort_minutes` is canonical human effort. Unknown numeric values are omitted or written `null`; never fabricate them. `included_in_estimation: true` requires a reliable prior estimate, matching task scope, and reliable actual-effort evidence.
+
+Legacy events may contain `calendar_minutes`; readers may map that value to actual effort only as compatibility input. New events must not write `calendar_minutes`.
 
 ## Rounding
 

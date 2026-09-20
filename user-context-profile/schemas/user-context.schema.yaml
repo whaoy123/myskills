@@ -37,11 +37,10 @@ files:
       - COMPLETE_ENOUGH
 ownership:
   dida_planning_profile:
-    - schedule
-    - energy
-    - mobility
-    - timezone
-    - planning_capacity
+    - weekly_wip_limit
+    - effort_budget_policy
+    - estimation_policy
+    - date_semantics
   dida_planning_memory:
     - tool_environment
     - reusable_workflow

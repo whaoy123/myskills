@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.5.0 — 2026-09-20
+
+- Make the task-only boundary executable, not just documentary: new Planner writes reject legacy `mobility`, `execution_window`, and `role: block` scheduling metadata while preserving old records for read/update compatibility.
+- Replace calendar-occupancy calibration with canonical human-effort fields: `estimated_effort_minutes` for estimates and `actual_effort_minutes` for completion evidence; old `calendar_minutes` remains read-only migration input.
+- Clarify ownership: manager orchestrates; breakdown owns durable hierarchy/gates; weekly-delivery owns the weekly contract; progress owns point-in-time facts/evidence; weekly-review owns end-of-week aggregate audit/archive; estimator owns effort only.
+- Add growth anti-starvation metadata: busy weeks may omit a growth deliverable only with an explicit deferral reason and resume/re-evaluation condition.
+- Add gate-driven hardware/design planning guidance: critical selection → datasheet constraints → external functional confirmation → requirements freeze → schematic/implementation.
+- Remove scheduling/capacity/mobility routing from capture, profile/memory templates and shared user-context ownership.
+- Extend regression tests for legacy-read/new-write boundaries, actual-effort migration, growth deferral and scheduling-residue checks.
+
+## 1.4.0 — 2026-09-20
+
+- Introduce dida-weekly-delivery on existing task/phase owners, with outcome, scoped acceptance and evidence.
+- Default to at most two core weekly deliverables; retain growth trade-offs and count necessary obligations.
+- Add pure weekly contract, reference, effort, deadline-risk, acceptance and rollover validation.
+- Keep Planner schema 1 and existing week fields; support versioned JSON and preserve unknown metadata.
+- Separate weekly-slice acceptance from whole-task completion; record user_report honestly.
+- Archive before rollover; do not silently rewrite promises or dates.
+- Carry forward the approved task-only boundary: remove calendar scheduler and clock-block workflows.
+- Update research handoff routes and provide validated backup-first installation.
+
 ## 1.1.0 — 2026-08-06
 
 - 新增 `dida-planning-memory`，负责长期项目规则、工具环境、工作方式和通用约定。

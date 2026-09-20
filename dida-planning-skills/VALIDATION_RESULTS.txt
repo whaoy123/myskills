@@ -1,0 +1,34 @@
+DIDA task-planning skills v1.5.0 validation
+Date: 2026-09-20
+
+Baseline check before v1.5 edits
+- v1.4.0 unittest: 104 tests passed.
+- v1.4.0 strict package validator: 10 skills, 0 errors, 0 warnings.
+
+Final v1.5.0 checks
+1) python dida-planning-core/scripts/package_validator.py --root . --strict-manifest
+   Expected/final: Validated: 10 skills; 0 errors; 0 warnings
+
+2) python -m unittest discover -s dida-planning-core/tests -v
+   Final: Ran 114 tests; OK
+   New regression coverage includes:
+   - legacy mobility/execution_window readable but rejected for new writes
+   - role:block legacy-read-only behavior
+   - actual_effort_minutes / estimated_effort_minutes canonical fields
+   - legacy calendar_minutes history migration
+   - growth deferral reason/resume-condition warnings
+   - no retired scheduling metadata in profile/memory templates
+   - user-context ownership no longer routes schedule/energy/mobility/capacity into Dida profile
+
+3) python dida-planning-core/scripts/weekly_delivery.py --input dida-weekly-delivery/assets/example-plan.json
+   Final summary: validation_passed=true, feasibility=feasible, core_count=2,
+   known_remaining_minutes=420, effort_budget_minutes=480, warnings=[]
+
+4) python install.py --dry-run
+   Final summary: dry_run=true, installs 10 user-facing Dida skills plus dida-planning-core,
+   retires dida-daily-planner, warnings=[]
+
+Release boundary
+- No real TickTick/Dida task was modified by these tests.
+- No calendar/Outlook data was read.
+- GitHub branch synchronization is validated separately by GitHub branch/commit read-back.

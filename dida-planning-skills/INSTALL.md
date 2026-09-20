@@ -1,85 +1,37 @@
-# 安装与升级
+# 安装与升级 v1.5.0
 
-## 推荐运行方式：MCP / 连接器
+## 先检查
 
-如果运行环境已经提供 TickTick / 滴答清单 MCP 或一等连接器工具，只需要安装规划 Skills；**不要求安装或登录 `dida-cli`**。
-
-运行时职责：
-
-```text
-规划 / 拆解 / 估时 / 复盘 → dida-planning-skills
-真实任务读写               → TickTick / 滴答清单 MCP
-```
-
-## 本地 CLI 回退（可选）
-
-只有在 Codex/本地 Agent 环境没有可用 MCP/连接器、仍需要直接访问滴答时，才安装 DIDA CLI：
+在 `dida-planning-skills` 目录运行。需要 Python 3.10 或更新版本；本包新增逻辑只用标准库，不要求额外安装 YAML 库。
 
 ```powershell
-node --version
-npm install -g @suibiji/dida-cli
-dida --version
-dida auth login
-dida auth status
+python .\dida-planning-core\scripts\package_validator.py --root . --strict-manifest
+python -m unittest discover -s .\dida-planning-core\tests -v
+python .\install.py --dry-run
 ```
 
-CLI 版本可能改变参数。遇到未知字段时，以本机 `dida <group> <command> --help` 为准。
+## 安装
 
-`dida-cli` 是 legacy/local fallback，不应在已有 MCP 的 ChatGPT 场景中成为默认执行路径。
-
-## 安装 Skills
-
-PowerShell：
+默认安装到 `$HOME\.agents\skills`：
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\install.ps1
+python .\install.py
 ```
 
-安装到其他位置：
+也可使用 `install.ps1` / `install.sh`，它们调用同一个 Python 安装器。
 
-```powershell
-.\install.ps1 -Destination "D:\your-repo\.agents\skills"
-```
+安装前验证包清单；已有同名技能和旧 `dida-daily-planner` 先移到技能目录之外的 `skill-backups/dida-时间戳-随机码`。安装失败会尝试恢复已移动目录。其他非滴答技能不变，旧缓存保留在备份中。
 
-Linux / macOS / WSL：
+安装后的旧日程模块退出活跃技能目录。备份目录不应作为技能发现路径加载。
 
-```bash
-bash install.sh
-```
+## 运行
 
-安装脚本会覆盖同名技能目录，但不会删除其他技能。
+优先使用可用的滴答 MCP/连接器；不要求在已有连接器时安装 CLI。
 
-## 升级
+这次安装只改本地技能，不改滴答任务或 NOTE。旧运行态配置保留，只有用户授权时才合并新 `规划偏好｜周交付与任务投入` 规则。
 
-升级前如需保留本地估时缓存和待同步队列，可备份：
+## 升级后验证
 
-```text
-~/.agents/skills/dida-planning-core/state/
-```
+用一个不写入的请求检查：“按当前任务拟定一到两个周交付物”。应先读取业务任务，给产物、范围、验收、支撑任务和未知项；不会创建周计划父任务、执行块或日程。
 
-这些文件不是业务权威；当前任务事实始终以 TickTick/滴答清单为准。缓存丢失后应能从远端任务、评论和 focus 记录重建。
-
-## 首次初始化配置
-
-已有运行态配置时不要重复初始化或覆盖。
-
-确实是首次使用时，可按需执行：
-
-```text
-$dida-planning-profile 初始化系统配置
-$dida-planning-memory 初始化长期记忆分类
-```
-
-初始化写入同样优先通过 MCP/连接器完成；只有没有连接器时才使用 CLI fallback。
-
-## 全局规划验收
-
-安装后做一次全局规划测试，确认：
-
-1. 能枚举全部项目/清单；
-2. 能读取全部未完成任务并处理分页；
-3. 无日期和远期任务也进入风险检查；
-4. planner 会检查 deadline、dependency、external lead time 和 `latest_safe_start`；
-5. 写回操作能够 read-back 验证；
-6. 用户未要求时不会自动生成具体时钟执行块。
+如果要应用到真实任务，再明确要求写回，并核对保存结果。

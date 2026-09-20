@@ -1,22 +1,13 @@
-# Configuration NOTE ownership
+# Configuration ownership
 
-| NOTE | Read by |
-|---|---|
-| 作息与容量 | daily planner, weekly review |
-| 日程移动权限 | daily planner |
-| 特征与风险缓冲 | estimator, daily planner, progress, weekly review |
-| 标签与任务正文 | capture, breakdown, progress |
-| 依赖关系 | breakdown, daily planner, progress |
-| Schema与迁移版本 | all skills only when resolving IDs/version or migrating |
+Runtime NOTE content wins over templates. Initialize missing notes only, reuse equivalent existing notes, and read back all changes.
 
-## Template rule
+- Estimation policy: dida-task-estimator and dida-task-progress.
+- Task/body protocol: capture, breakdown, progress and weekly-delivery.
+- Dependency protocol: breakdown and manager.
+- Weekly deliverable/effort policy: weekly-delivery and weekly-review.
+- Schema/version and actual IDs: all modules when needed.
 
-Templates are first-run defaults, not authoritative files after initialization. The Dida NOTE becomes authoritative once created. Never periodically sync a template over the NOTE.
+No work-calendar/availability/time-block configuration is initialized. Existing removed calendar configuration is not deleted remotely merely by installing this package; migration requires user authorization.
 
-## One-time exception
-
-A one-day request such as “今天可以做到22点” belongs to that planning interaction or affected task comment, not the stable profile, unless the user says this should be the new default.
-
-## Long-term memory boundary
-
-These six notes do not own project rules, tool environments, or general workflow memories. Route those facts to `dida-planning-memory`, which stores atomic child memory records. Do not duplicate the same fact in profile and memory.
+Do not create a local editable current-task store. Project background belongs to memory; weekly commitments belong to owner tasks, not profile.

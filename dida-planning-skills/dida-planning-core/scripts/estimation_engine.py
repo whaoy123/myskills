@@ -79,7 +79,10 @@ def historical_correction(task: dict[str, Any], history: list[dict[str, Any]]) -
     candidates = []
     for sample in history:
         est = sample.get("estimated_minutes")
-        actual = sample.get("calendar_minutes")
+        actual = sample.get("actual_effort_minutes")
+        if actual is None:
+            # Backward compatibility with v1.0-v1.4 history snapshots.
+            actual = sample.get("calendar_minutes")
         sim = similarity(task, sample)
         if sim < 0.25 or not est or not actual or est <= 0 or actual <= 0: continue
         ratio_log = math.log(float(actual) / float(est))
@@ -128,7 +131,7 @@ def estimate(task: dict[str, Any], history: list[dict[str, Any]]) -> dict[str, A
         "history_multiplier": round(hist_mult, 3),
         "similar_samples": n,
         "target_coverage": coverage,
-        "calendar_minutes": rounded,
+        "estimated_effort_minutes": rounded,
         "confidence": confidence,
         "ai_parallel_minutes": task.get("ai_parallel_minutes"),
         "end_to_end_minutes": task.get("end_to_end_minutes"),

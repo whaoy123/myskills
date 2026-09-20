@@ -28,8 +28,10 @@ def classify_item(item: dict[str, str]) -> dict[str, Any]:
         return {**item, "decision": "skip", "reason": "temporary_session_context"}
     if "Markdown" in text and any(token in text for token in ["唯一规划数据源", "SQLite", "PWA"]):
         return {**item, "decision": "skip", "reason": "obsolete_storage_rule"}
-    if any(token in text for token in ["作息", "健身", "日程", "工作时间", "精力"]):
-        return {**item, "decision": "route", "owner": "profile", "reason": "planning_preference"}
+    if any(token in text for token in ["作息", "日程", "工作时间"]):
+        return {**item, "decision": "review", "reason": "legacy_calendar_rule_do_not_reactivate"}
+    if any(token in text for token in ["周交付", "任务投入", "验收规则"]):
+        return {**item, "decision": "route", "owner": "profile", "reason": "task_planning_preference"}
     if any(token in text for token in ["任务状态", "剩余分钟", "截止", "当前进度"]):
         return {**item, "decision": "skip", "reason": "task_state_not_memory"}
     kind = "workflow" if any(token in text for token in ["需从", "默认", "不得", "必须", "不依赖", "解释"] ) else "convention"

@@ -14,7 +14,7 @@ def main() -> None:
     ap=argparse.ArgumentParser(); ap.add_argument("seed_json"); ap.add_argument("--output",required=True); args=ap.parse_args()
     rows=json.loads(Path(args.seed_json).read_text(encoding="utf-8")); out=[]
     for row in rows:
-        event={"event":"completed","operation_id":str(uuid.uuid4()),"prior_estimate_minutes":row.get("estimated_minutes"),"calendar_minutes":row.get("calendar_minutes"),"included_in_estimation":bool(row.get("included")),"category":row.get("category"),"mode":row.get("mode"),"reason":"legacy estimation sample migration"}
+        event={"event":"completed","operation_id":str(uuid.uuid4()),"prior_estimate_minutes":row.get("estimated_minutes"),"actual_effort_minutes":row.get("actual_effort_minutes", row.get("calendar_minutes")),"included_in_estimation":bool(row.get("included")),"category":row.get("category"),"mode":row.get("mode"),"reason":"legacy estimation sample migration"}
         out.append({"legacy_task_id":row.get("task_id"),"comment":render_event(event),"preview_only":True})
     Path(args.output).write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
     print(f"comments={len(out)} preview_only=true")

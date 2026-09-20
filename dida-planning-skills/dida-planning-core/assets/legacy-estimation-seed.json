@@ -4,7 +4,7 @@
     "category": "learning",
     "mode": "research",
     "estimated_minutes": 60,
-    "calendar_minutes": 135,
+    "actual_effort_minutes": 135,
     "included": true,
     "source": "legacy-migration"
   },
@@ -13,7 +13,7 @@
     "category": "hardware",
     "mode": "communicate",
     "estimated_minutes": 180,
-    "calendar_minutes": 35,
+    "actual_effort_minutes": 35,
     "included": true,
     "source": "legacy-migration"
   },
@@ -22,7 +22,7 @@
     "category": "route_errand",
     "mode": "routine",
     "estimated_minutes": 30,
-    "calendar_minutes": 5,
+    "actual_effort_minutes": 5,
     "included": true,
     "source": "legacy-migration"
   },
@@ -31,7 +31,7 @@
     "category": "route_errand",
     "mode": "travel",
     "estimated_minutes": 180,
-    "calendar_minutes": 144,
+    "actual_effort_minutes": 144,
     "included": true,
     "source": "legacy-migration"
   },
@@ -40,7 +40,7 @@
     "category": "writing",
     "mode": "routine",
     "estimated_minutes": 22,
-    "calendar_minutes": 15,
+    "actual_effort_minutes": 15,
     "included": true,
     "source": "legacy-migration"
   },
@@ -49,7 +49,7 @@
     "category": "route_errand",
     "mode": "travel",
     "estimated_minutes": 29,
-    "calendar_minutes": 65,
+    "actual_effort_minutes": 65,
     "included": true,
     "source": "legacy-migration"
   },
@@ -58,7 +58,7 @@
     "category": "research_analysis",
     "mode": "research",
     "estimated_minutes": 63,
-    "calendar_minutes": 15,
+    "actual_effort_minutes": 15,
     "included": true,
     "source": "legacy-migration"
   },
@@ -67,7 +67,7 @@
     "category": "fitness_life",
     "mode": "routine",
     "estimated_minutes": 120,
-    "calendar_minutes": 120,
+    "actual_effort_minutes": 120,
     "included": true,
     "source": "legacy-migration"
   },
@@ -76,7 +76,7 @@
     "category": "writing",
     "mode": "modify",
     "estimated_minutes": 120,
-    "calendar_minutes": 172,
+    "actual_effort_minutes": 172,
     "included": true,
     "source": "legacy-migration"
   }

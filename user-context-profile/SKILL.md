@@ -27,7 +27,8 @@ Never commit this runtime directory into a skill repository.
 
 A fact has one owner only.
 
-- Planning schedule, energy, mobility, timezone, work-capacity rules -> Dida `dida-planning-profile` when available.
+- Stable task-planning policy such as weekly WIP limit, estimation/date semantics and user-supplied effort-budget rules -> Dida `dida-planning-profile` when available.
+- Calendar schedule, energy windows, mobility and personal work-capacity models are outside the Dida task-planning suite; keep them with the true external owner when a workflow needs them rather than routing them into Dida profile.
 - Durable tool/environment facts, workflow conventions, reusable agreements -> Dida `dida-planning-memory` when available.
 - General background, long-term goals, knowledge levels, learning/explanation preferences -> local user context.
 - Project-specific understanding, misconceptions, open questions, project decisions -> the project's `research_state/`, never global user context.
@@ -58,7 +59,7 @@ The unified view may include:
 - relevant knowledge and gaps;
 - learning/explanation preferences;
 - tools and reusable constraints;
-- planning constraints when Dida is available;
+- task-planning constraints when Dida is available;
 - provenance/owner for each imported field.
 
 Other skills should consume this unified view rather than independently reading all backing stores.

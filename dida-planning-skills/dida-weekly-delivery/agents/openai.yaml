@@ -1,0 +1,6 @@
+interface:
+  display_name: "滴答周交付"
+  short_description: "选择最多两个可验收周成果并关联现有任务"
+  default_prompt: "使用 $dida-weekly-delivery 定义本周产物、范围、验收和支撑任务；不创建新周计划父任务。"
+policy:
+  allow_implicit_invocation: true

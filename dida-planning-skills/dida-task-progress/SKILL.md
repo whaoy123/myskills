@@ -1,140 +1,66 @@
 ---
 name: dida-task-progress
-description: Start, pause, wait, resume, update progress, complete, or delete Dida tasks; record focus and actual-time evidence; update parent progress; and append estimation-calibration comments. Use for execution updates such as “开始了”, “做到一半”, “等反馈”, “完成了”, “花了两个点”, or “删掉这个任务”. Prefer TickTick/滴答清单 MCP or connector tools for runtime reads/writes; use dida-cli only as fallback. Do not replan an entire day unless requested.
+description: Record actual Dida task progress, completion, waits and human effort; assess a current weekly delivery slice against its criteria without turning partial progress into parent/native completion. Prefer MCP/connectors and read-write-read-back; never invent timestamps, effort, or measured results.
 ---
 
-# Dida task progress and completion
+# 任务事实与当前验收
 
-把用户实际发生的执行事实写回 Dida：**当前状态属于任务，历史证据属于评论/focus，实际耗时用于后续估时校准。**
+Progress owns **point-in-time facts**: what changed on a task now, what evidence exists, whether the current weekly slice presently meets its acceptance contract, and how much human effort was actually spent. Weekly review owns the end-of-week aggregate audit, archive and rollover decision.
 
-如果完成过程中暴露出稳定、可复用的长期规则，才路由到 `dida-planning-memory`；不要把普通进度事实塞进 memory。
+## 读取与更新
 
-## Runtime I/O
+唯一解析 task，读取自然语言、Planner、required children、DoD 和本周合同。只修改本次陈述涉及的字段。
 
-有 TickTick/滴答清单 MCP 或一等连接器时，优先使用它完成：
+用户最新陈述优先于自动推断。状态标签沿运行态约定，完成使用原生状态；不能因 status 与旧 completedTime 矛盾就猜已完成。
 
-- task read/update/complete/delete；
-- comment；
-- focus/actual-time 记录；
-- parent/child read-back。
+有 MCP/连接器就优先用它；超时先查结果，写后回读。
 
-只有没有连接器时才使用 `dida-cli` fallback。
+## 进度
 
-所有写操作遵循：
+记录“完成了什么 / 剩什么 / 被什么阻塞”。百分比只是摘要，不生成假精度；旧估时不再适用时交给 estimator 重估。
 
-```text
-resolve/read → apply intended change → read-back → report actual saved state
-```
+开始/暂停/等待/恢复保留原因和解除条件。硬依赖未满足不能当作已可执行。进度更新不自动重排整周，也不重新选择核心周交付物。
 
-超时或结果不明确时先读回，不盲目重复写。
+## 当前周交付切片验收
 
-## State rules
+1. 对照当前 owner 上的本周范围和全部验收条件。
+2. 明确的用户完成确认可作为 `user_report`，保留原意。
+3. 工具读取/测试结果和用户陈述分开标来源；不能把未看过的文件说成已核验。
+4. 当前可判定 `delivered / not_delivered / blocked / cancelled / unverified`。
+5. 周交付只完成了大任务的切片时，原生大任务继续未完成。
 
-如果当前运行态协议使用状态标签，状态互斥：
+活动陈述“干了三小时”“看了一半”不自动成为 delivered。周末跨全部核心交付物的验收、原因归因、归档和下周处理交给 `dida-weekly-review`。
 
-- `状态/进行中`
-- `状态/等待`
-- `状态/暂停`
+## 原生任务完成
 
-No state label 表示未开始；完成使用 Dida native completion。
+完整 DoD 与 required children 满足，或用户明确确认这一完整任务已经完成，才执行 native complete。存在矛盾时指出，不越过剩余条件。
 
-如果当前连接器/运行态支持更直接的状态字段，以运行态协议为准，不为了兼容旧标签制造重复状态源。
+先原生完成成功，再追加 completed 事件；不能把失败的写入记成完成。周合同验收结果可以独立记录，但不自动传播为父项目完成。
 
-Progress 只在有证据时更新。用户明确陈述优先于自动推断；避免虚假精度。
+## 实际投入记录
 
-配置和 memory 记录不是 executable work，不参与父任务进度/完成 Gate。
+`actual_effort_minutes` = 用户为该任务实际投入的人工工作量，包括专注工作和必要的主动沟通/操作，但不包含纯等待，也不等于某个日历时间段的长度。
 
-## Start / pause / wait / resume
+用户说约 3 小时就记录约 180 分钟及不确定性；不知道起止时间时不虚构时间戳。“早九到晚十一”只是端到端经过时间，不能自动记成 14 小时投入。
 
-1. 唯一解析并读取任务；
-2. 开始前检查 hard dependency；
-3. 更新当前状态；
-4. 有证据时更新 progress；
-5. reason 有长期执行意义时加一条短 comment；
-6. read-back。
+可分开记录 `focus_minutes`、`other_active_minutes`、`ai_parallel_minutes` 和 `end_to_end_minutes`；不要重复计数。新事件写 `actual_effort_minutes`；旧事件中的 `calendar_minutes` 只作历史读取兼容，不再新写。
 
-`wait` 应记录等待对象/条件；如果等待可能吞噬交付余量，后续 planner/review 应重新评估 `latest_safe_start`。
+不因消息时间间隔推算用户持续工作。保留 prior estimate 与实际证据，供 estimator 校准。
 
-## Progress update
+## 范围改变和换周
 
-用户说“做到一半”“主体做完了但还没验证”等时：
+不能把旧合同改小后回称本周已交付。先保存原合同与变更原因，再记录新的约定；重大替换需用户确认。
 
-- 优先记录实际完成的交付物/剩余 DoD；
-- progress 数字只是摘要，不替代 remaining work 描述；
-- 如果范围改变导致旧 estimate 失效，调用 `dida-task-estimator` 估 remaining work。
+换周归档由 weekly-review 处理，历史成功后才清旧周标记。默认不滚动日期、不另建周计划任务。
 
-不要因为一个子步骤完成就误把整个任务完成。
+## 安全写回
 
-## Block completion
+读取 → 比较 → 仅改必要字段 → 写入 → 回读。
 
-完成 execution block：
-
-- 完成该 block；
-- 更新 owner task 的合理进度；
-- 不自动完成 owner；
-- 有实际时间时记录本次 session evidence。
-
-## Task completion
-
-1. 读取任务、required children 和 DoD；
-2. 若 required children 未完成，不直接 complete；
-3. 读取可用 focus/actual-time evidence；
-4. 用户报告“花了 X 个点/小时”时按用户陈述记录 calendar/focus 语义；若语义不清且影响统计，只做最小必要澄清；
-5. 保存 prior estimate 作为校准证据；
-6. 先完成 native Dida task；
-7. 再追加 completion / actual-time comment；
-8. read-back；
-9. 更新必要 ancestors 和可重建估时索引。
-
-永远不要在 native completion 成功前先写一个“completed”历史事件。
-
-## Actual-time accounting
-
-区分：
-
-- `calendar_minutes`：用户真正被占用的日历时间；
-- `focus_minutes`：专注时间；
-- `other_active_minutes`：沟通、切工具、现场等待但人在参与；
-- `ai_parallel_minutes`：AI 可独立运行、用户可以同时干别的；
-- `end_to_end_minutes`：墙钟总跨度。
-
-同一用户同时发生的 calendar occupancy 不可跨任务重复计算。AI parallel 可以与用户工作重叠，但不能再算一次用户占用。
-
-当用户说“两个点/三个点”且当前对话约定其含义为小时，可以按对应小时记录；不要制造比用户陈述更高的时间精度。
-
-## Delete
-
-用户明确要求删除时可以删除唯一解析的任务。
-
-如果该任务有 children、重要 comments 或 focus history，删除前说明影响。删除后 read-back/刷新确认。
-
-## Interaction with planning
-
-本 Skill 负责**事实更新**，不自动重排整天/整周。
-
-但是以下变化应触发“需要重新规划”的信号：
-
-- 实际耗时显著超出 estimate；
-- 新 external wait；
-- hard dependency 发生变化；
-- scope/DoD 增大；
-- 任务完成后释放了大量容量；
-- latest-safe-start 风险可能变化。
-
-只有用户要求重新安排时，再路由到 `dida-manager` / `dida-daily-planner`。
-
-## Completion Gate
-
-一次进度操作完成至少满足：
-
-1. 修改的是唯一解析的正确任务；
-2. 状态/progress 与用户陈述一致；
-3. actual time 没有重复计入 calendar occupancy；
-4. prior estimate 没被无痕覆盖；
-5. parent completion 没有越过 required children；
-6. 写操作已经 read-back；
-7. 若 estimate 已明显失效，remaining work 已重估或明确标记需要重估。
+保留未知 Planner 字段、正文、清单项、父任务与硬截止。CHECKLIST 使用实际可见的 desc/items。删除有子任务/历史的任务前说明影响。
 
 ## References
 
-Read `references/progress-and-completion.md` for event fields and parent progress. TickTick/滴答清单 MCP or an equivalent connector is the preferred runtime I/O layer; `dida-cli` is fallback only.
+- `references/progress-and-completion.md`
+- `dida-weekly-delivery`
+- `dida-weekly-review`

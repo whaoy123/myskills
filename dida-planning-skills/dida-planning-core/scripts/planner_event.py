@@ -9,7 +9,7 @@ from typing import Any
 
 HEADER = "[planner-event:v1]"
 ORDER = [
-    "event", "operation_id", "timestamp", "prior_estimate_minutes", "calendar_minutes",
+    "event", "operation_id", "timestamp", "prior_estimate_minutes", "actual_effort_minutes",
     "focus_minutes", "other_active_minutes", "ai_parallel_minutes", "end_to_end_minutes",
     "included_in_estimation", "reason", "note"
 ]
@@ -17,6 +17,8 @@ ORDER = [
 
 def render_event(data: dict[str, Any]) -> str:
     payload = dict(data)
+    if "calendar_minutes" in payload:
+        raise ValueError("calendar_minutes is legacy-read-only; write actual_effort_minutes")
     payload.setdefault("timestamp", datetime.now().astimezone().isoformat(timespec="seconds"))
     lines = [HEADER]
     for key in ORDER + [k for k in payload if k not in ORDER]:

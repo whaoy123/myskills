@@ -184,7 +184,7 @@ validate/audit current state
 
 ## Dida boundary
 
-Research determines what should be done and what outputs/acceptance criteria are required. Dida owns task breakdown, estimation, scheduling, and progress.
+Research determines what should be done and what outputs/acceptance criteria are required. Dida owns task breakdown, estimation, weekly-deliverable selection, and progress.
 
 Research writes `dida_handoff.yaml` only. It must not silently mutate the user's task plan.
 
@@ -193,7 +193,7 @@ If Dida skills are available, hand off approved work packages to:
 1. `dida-task-breakdown`
 2. `dida-task-estimator`
 3. `dida-task-capture`
-4. `dida-daily-planner`
+4. `dida-weekly-delivery`
 
 `dida_handoff.yaml` must not pre-invent calendar dates, priorities, or estimated durations. Those belong to Dida.
 

@@ -1,13 +1,11 @@
 ---
 name: dida-task-capture
-description: Classify, deduplicate, and capture a new task, idea, reminder, or project into 滴答清单. Decide destination, parent relationship, executable/waiting role, date semantics, and whether the item should be scheduled now. Prefer TickTick/滴答清单 MCP or connector tools for reads and writes; use dida-cli only as fallback. Do not deeply decompose, estimate, or schedule unless the user also invokes those workflows.
+description: Classify, deduplicate, and capture a new task, idea, reminder, or project into 滴答清单. Decide destination, parent relationship, executable/waiting role and true date semantics. Prefer TickTick/滴答清单 MCP or connector tools for reads and writes; use dida-cli only as fallback. Do not deeply decompose, estimate, schedule, or promote a new item into a weekly core deliverable unless the user invokes those workflows.
 ---
 
 # Dida task capture
 
-把用户的新事项整理成一条干净、可找到、不会和已有任务重复的 Dida 记录。
-
-本 Skill 的核心价值是**分类和归档判断**，不是提供底层 API 能力。运行环境已有 TickTick/滴答清单 MCP 或连接器时，直接使用连接器完成搜索、创建和 read-back；只有没有连接器时才回退到 `dida-cli`。
+把用户的新事项整理成一条干净、可找到、不会和已有任务重复的 Dida 记录。Capture 负责**分类和归档**，不负责日程排程。
 
 ## Capture 前最小读取
 
@@ -24,35 +22,25 @@ description: Classify, deduplicate, and capture a new task, idea, reminder, or p
 ## Capture flow
 
 1. **提炼最小可执行标题**：动作 + 对象，通常控制在 25 个中文字符左右。
-2. **去重**：搜索语义或标题高度相近的已有任务。
-   - 已有同一执行项 → 优先更新/补充，而不是重复创建；
-   - 只是相关但不同 → 保留独立任务并挂到同一父项；
-   - 无法判断是否重复 → 报出候选，不静默合并。
-3. **确定归属**：
-   - 用户明确指定 list/parent 时优先；
-   - 明确属于现有项目时放入对应项目；
-   - 归属不明才进入 Inbox；
-   - 不为了“整理得漂亮”擅自新建 project/list。
-4. **判断角色**：`project` / `phase` / `task`。
-   - 普通事项默认 `task`；
-   - 真正等待外部条件才能继续的事项应标记 waiting 语义，而不是伪装成当前 executable；
-   - 长期规则交给 `dida-planning-memory`，不混入业务任务树。
-5. **判断是否现在排日期**：
-   - 用户明确给出日期/期限 → 按其语义记录；
-   - 有真实外部日期约束 → 可以记录；
-   - 只是“以后要做” → 不凭空 invent date；
-   - 若存在明显截止链但不知道何时必须启动，可先保留 undated，并提示后续 planner 计算 `latest_safe_start`。
+2. **去重**：已有同一执行项优先更新/补充；只是相关但不同则保留独立任务；无法判断时报告候选，不静默合并。
+3. **确定归属**：用户明确指定 list/parent 时优先；明确属于现有项目时挂入对应项目；归属不明才进入 Inbox；不为整理外观擅自新建 project/list。
+4. **判断角色**：`project / phase / task`。普通事项默认 `task`；真正等待外部条件才能继续的事项记录 waiting 语义；长期规则交给 `dida-planning-memory`。
+5. **判断日期语义**：
+   - “周五必须交”这类真实承诺 → `hard_deadline`；
+   - “希望周五前完成”这类目标 → `target_date`；
+   - 仅说“周三下午做”属于执行意图，不是任务规划约束；除非用户明确要 Dida 原生提醒，否则不把它转换成 Planner 日期语义；
+   - 没有可靠日期 → `none`；
+   - 若存在明显截止链但不知道何时必须启动，保持 undated，后续由 manager/estimator 在依据充分时计算 `latest_safe_start`。
 6. **写入必要上下文**：完成标准、链接/路径、关键决定、未决问题；自然文本保持紧凑。
-7. **通过 MCP/连接器创建或更新并 read-back**。
-8. 若只有 CLI 可用，才调用 `dida-cli` fallback。
+7. **通过 MCP/连接器创建或更新并 read-back**；只有无连接器时才回退 CLI。
 
 ## Defaults
 
 - `progress: 0`
 - `date_semantics: none`，除非用户提供真实日期含义。
-- 普通工作默认 movable；会议/预约/出行等明确承诺可为 fixed；protected 只按运行态 profile 规则判断。
+- 不新写 `mobility` 或 `execution_window`；旧任务中的这些字段仅由核心协议兼容读取。
 - 不自动发明 dependency、priority、estimate、reminder 或 recurrence。
-- 不因为用户说“记一下”就触发完整日程规划。
+- 不因为用户说“记一下”就触发完整任务规划。
 
 ## Parent and hierarchy
 
@@ -66,10 +54,14 @@ description: Classify, deduplicate, and capture a new task, idea, reminder, or p
 
 - 任务太大/范围模糊 → `dida-task-breakdown`
 - 用户问“大概多久” → `dida-task-estimator`
-- 用户要求“今天/这周怎么安排” → `dida-manager` / `dida-daily-planner`，并执行全局扫描 Gate
+- 用户要求“这周怎么安排” → `dida-manager` / `dida-weekly-delivery`，并执行全局扫描 Gate
 - 用户汇报完成/耗时 → `dida-task-progress`
-- 稳定规划偏好 → `dida-planning-profile`
+- 稳定任务规划偏好 → `dida-planning-profile`
 - 跨项目长期规则 → `dida-planning-memory`
+
+## 新任务与本周承诺
+
+默认新收集项先归类，不自动成为第三个核心交付物。紧急事项纳入本周时说明被替换/缩小的承诺，必办项仍计投入；由用户确认取舍。
 
 ## Output
 

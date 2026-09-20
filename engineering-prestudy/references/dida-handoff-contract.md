@@ -37,7 +37,7 @@ dida-task-estimator
     ↓
 dida-task-capture
     ↓
-dida-daily-planner (only when scheduling is wanted)
+dida-weekly-delivery (only when weekly deliverables are requested)
 ```
 
 `build_dida_bridge.py` refuses non-APPROVED handoff by default.

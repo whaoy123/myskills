@@ -1,139 +1,51 @@
-# DIDA 智能日程管理 Skills
+# DIDA 任务规划 Skills v1.5.0
 
-这是一组面向 Codex / ChatGPT Skills 的滴答清单任务规划技能。
+滴答清单保存真实任务状态。Skill 只负责任务范围、归属、依赖、人工投入估时、截止风险、周交付和验收；MCP/连接器优先执行真实读写，`dida-cli` 仅作无连接器时的 fallback。
 
-**滴答清单是任务事实的唯一业务权威；Skill 负责“怎么规划”，MCP/连接器负责“怎么读写”。** 模型记忆、聊天上下文和本地缓存只能补充背景，不能用于证明任务清单完整。
+## 主流程
 
-## 运行架构
+全量未完成任务 → hard deadline / Latest Safe Start / 依赖与 external lead time → 本周已有承诺与必办节点 → 0–2 个核心周交付物 → 支撑任务 → 执行证据 → 周验收 → 重新选择下周。
 
-```text
-                    dida-planning-profile
-                             ↓
-                     dida-task-breakdown
-                             ↓
-                     dida-task-estimator
-                             ↓
-                     dida-daily-planner
-                             ↓
-                 TickTick / 滴答清单 MCP
-                             ↑
-            dida-task-progress / weekly-review
-```
+- **纯任务规划**：不读取 Outlook/日历，不生成小时级时间块，不维护个人可用时段、精力窗口或 weekly capacity。
+- **周交付物**：必须有产物、范围、验收标准、验收方式、支撑任务和明确不做项；默认最多两个，可以只有一个或零个。
+- **长期发展防饥饿**：没有 growth 交付的忙周必须记录挤占原因和恢复/重新评估条件。
+- **真实门控**：硬件/设计项目用持久依赖表达“关键选型 → datasheet 约束 → 功能确认 → 需求冻结 → 原理图/实现”，不提前承诺尚未 ready 的下游工作。
+- **估时口径**：估计人工任务投入；新输出 `estimated_effort_minutes`，完成事实用 `actual_effort_minutes`。外部等待和端到端周期单独记录。
+- **日期边界**：目标日期、硬截止和 Latest Safe Start 分开；缺可靠经过时间依据时 Latest Safe Start 为 unknown。
 
-- **首选执行层：TickTick / 滴答清单 MCP 或等价一等连接器工具。**
-- **兼容回退：`dida-cli`。** 仅在运行环境没有可用 MCP/连接器时使用；不再作为 ChatGPT 场景的默认读写路径。
-- `dida-planning-core` 保留为估时、依赖、容量、迁移等确定性逻辑库，不承担任务事实存储。
+## 职责
 
-## 目录
-
-- `dida-manager`：唯一顶层入口与意图路由。
-- `dida-task-capture`：任务分类、去重、归档和录入规则。
-- `dida-task-breakdown`：拆分父子任务并建立依赖。
-- `dida-task-estimator`：估算任务日历占用时长。
-- `dida-daily-planner`：全局风险扫描、日/周容量规划；只有用户明确要求时才生成具体时钟块。
-- `dida-task-progress`：更新进度、状态、完成记录和实际耗时。
-- `dida-weekly-review`：周复盘、截止风险、最晚启动风险和下周任务池。
-- `dida-planning-profile`：维护作息、容量、移动权限等稳定规划偏好。
-- `dida-planning-memory`：保存长期项目规则、工具环境及工作约定；不承担当前任务事实。
-- `dida-planning-core`：共享 Python 核心，不是独立对话 Skill。
-- `dida-cli`：**legacy/local fallback**，仅在没有 MCP/连接器时提供本地 CLI 读写。
-
-## 数据归属
-
-| 信息 | 权威来源 |
+| 模块 | 唯一职责 |
 |---|---|
-| 当前任务、状态、正文、日期、父子关系、完成状态 | 滴答清单 |
-| 稳定排期偏好 | `dida-planning-profile` 对应运行态配置 |
-| 跨项目长期规则、工具环境、工作约定 | `dida-planning-memory` / 明确的运行态规则 |
-| 项目专属长期规则 | 项目父任务下的规则记录或明确项目配置 |
-| 估时和实际用时样本 | 任务评论 / focus 记录 + 可重建缓存 |
-| 临时日程例外 | 当次计划/相关任务，不写长期记忆 |
-| 模型记忆、聊天上下文 | 仅作背景提示，**不得作为任务完整性来源** |
+| dida-manager | 总入口、全量扫描、风险检查和路由 |
+| dida-weekly-delivery | 选择本周 0–2 个交付切片并定义验收合同 |
+| dida-weekly-review | 整周验收、偏差分析、归档与换周 |
+| dida-task-breakdown | 持久项目层级、阶段 gate 与依赖 |
+| dida-task-estimator | 人工投入、剩余工作和估时置信度 |
+| dida-task-progress | 当前进度/等待/完成、证据和实际投入事实 |
+| dida-task-capture | 新事项分类、去重、归属和真实日期语义 |
+| dida-planning-profile | 稳定的任务规划规则 |
+| dida-planning-memory | 跨项目长期规则与背景，不替代任务事实 |
+| dida-planning-core | 确定性解析、校验、估算、依赖与周合同辅助 |
+| dida-cli | 无可用连接器时的本地回退 |
 
-## 全局规划安全契约
+## 兼容边界
 
-当用户要求的是**全局规划**，例如：
+历史任务中的 `role: block`、`execution_window`、`mobility` 仍可读取，避免修改其它字段时破坏旧数据；v1.5.0 新写入拒绝这些字段。旧完成记录里的 `calendar_minutes` 可迁移为实际投入样本，但新事件不再写它。
 
-- “帮我安排今天/这周”；
-- “我现在应该干什么”；
-- “看看我所有任务怎么排”；
-- “把近期任务整体整理一下”；
+## 读写规则
 
-在给出计划前必须先通过 MCP/连接器完成一次**全量未完成任务扫描**：
+修改 Skill/讨论方案不触发实际任务写入。局部操作只读相关对象；全局周规划必须枚举全部可访问业务清单和未完成任务，包括 undated、future、waiting，并处理分页。
 
-1. 枚举所有当前可访问项目/清单；
-2. 读取所有未完成任务，处理分页，不得只看“今天/未来 7 天”；
-3. 同时保留无日期任务、远期任务、waiting 任务和父任务的必要元数据；
-4. 检查硬截止、剩余估时、依赖、外部等待、必要提前量和未来真实容量；
-5. 为有截止/交付约束的任务判断 **latest safe start（最晚安全启动时间）**；
-6. 只在完成上述风险扫描后，选择今天/本周真正应该进入执行池的任务。
-
-### 最晚安全启动时间
-
-`latest_safe_start` 不是简单的截止日前一天。应综合：
-
-- 任务自身 remaining work；
-- 必须串行的前置任务时长；
-- 审核、采购、打样、物流、预约、等待反馈等外部 lead time；
-- 估时不确定性和必要 buffer；
-- 截止前用户真实可用容量。
-
-如果信息不足，标记“启动风险未知”，不能因为 due date 很远就默认安全。
-
-**局部 CRUD 不要求全量扫描。** 例如“把拿伞改到周二”“这个任务完成了”“加一个 BOM 核对任务”，只需精确解析相关任务并修改，避免无意义的全库读取。
-
-## 规划与执行边界
-
-- Skill 决定：分类、拆解、估时、依赖、优先级、容量和风险。
-- MCP/连接器执行：搜索、读取、创建、更新、移动、完成、评论、focus 等真实操作。
-- 对写操作执行 read-before-write / write / read-back；遇到超时先读取确认，避免重复写入。
-- 只有用户明确要求具体时间块时才生成具体时钟；“安排这周”默认按天/优先级规划，不擅自制造执行块。
-
-## 安装
-
-### MCP / 连接器环境（推荐）
-
-只需安装这些规划 Skill；不要求本地 `dida-cli` 登录。运行时直接使用可用的 TickTick/滴答清单 MCP 或连接器工具。
-
-### 本地 CLI 回退环境
-
-仅当没有可用 MCP/连接器、需要在本地 Codex 中直接访问滴答时，才需要：
-
-- Node.js 20 或更高版本；
-- `npm install -g @suibiji/dida-cli`；
-- Python 3.10 或更高版本；
-- 已执行 `dida auth login`。
-
-Windows PowerShell：
-
-```powershell
-.\install.ps1
-```
-
-Linux / macOS / WSL：
-
-```bash
-bash install.sh
-```
-
-## 推荐使用顺序
-
-1. `dida-manager` 判断是局部操作还是全局规划。
-2. 全局规划先执行全量未完成任务扫描。
-3. 范围不清先用 `dida-task-breakdown`。
-4. 时间不可信先用 `dida-task-estimator`。
-5. 用 `dida-daily-planner` 做风险/容量规划。
-6. 通过 MCP/连接器应用变更并 read-back。
-7. 实际执行后由 `dida-task-progress` 写入进度/实际耗时。
-8. 周期性由 `dida-weekly-review` 检查积压、截止和最晚启动风险。
+实际写回采用：读取 → 比较/去重 → 仅修改授权字段 → 回读。超时先核对结果，不盲目重试；不无痕移动硬截止或修改旧验收标准。
 
 ## 验证
 
 ```bash
-python dida-planning-core/scripts/package_validator.py --root .
+python dida-planning-core/scripts/package_validator.py --root . --strict-manifest
 python -m unittest discover -s dida-planning-core/tests -v
+python dida-planning-core/scripts/weekly_delivery.py --input dida-weekly-delivery/assets/example-plan.json
+python install.py --dry-run
 ```
 
-## 迁移原则
-
-迁移工具默认只生成预览，不直接写入滴答。应先去重、重建父子关系并人工检查歧义，再分批执行。旧系统的快照、会话、写锁、日/周计划投影和验证日志不迁移。旧记忆迁移时必须先按“任务事实 / 规划偏好 / 长期记忆 / 不迁移”重新分类，禁止把旧 Markdown 记忆库整体复制进一个 NOTE。
+这些 JSON/本地历史仅用于瞬时计算或可重建校准，不是第二份可编辑任务库。

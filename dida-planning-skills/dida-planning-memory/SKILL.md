@@ -1,17 +1,18 @@
 ---
 name: dida-planning-memory
-description: Save, retrieve, update, or forget durable planning-related rules and background without duplicating current task state or stable scheduling profile settings. Use for explicit long-term project rules, tool/environment facts, reusable workflow conventions, and cross-project agreements. Current task facts belong to TickTick tasks; stable planning preferences belong to dida-planning-profile. Prefer TickTick/滴答清单 MCP or connector tools for storage; use dida-cli only as fallback.
+description: Save, retrieve, update, or forget durable planning-related rules and background without duplicating current task state or task-planning profile settings. Use for explicit long-term project rules, tool/environment facts, reusable workflow conventions, and cross-project agreements. Current task facts belong to TickTick tasks; stable task-planning policies belong to dida-planning-profile. Prefer TickTick/滴答清单 MCP or connector tools for storage; use dida-cli only as fallback.
 ---
 
 # Dida planning memory
 
-Maintain only the durable information that materially improves future planning. This Skill is deliberately narrow: **it is not a second task database and not a substitute for TickTick task inventory.**
+Maintain only durable information that materially improves future planning. It is not a second task database and not a substitute for the TickTick task inventory.
 
 ## Authority boundary
 
 - Current task existence, status, dates, parent/child relationships, progress and completion state → owning TickTick task.
-- Stable scheduling/energy/capacity/mobility preferences → `dida-planning-profile`.
-- Estimate and actual-time evidence → `dida-task-estimator` / `dida-task-progress` / focus records.
+- Stable **task-planning** policy such as weekly WIP limit, date semantics, estimation policy and user-supplied effort-budget rules → `dida-planning-profile`.
+- Calendar availability, hourly schedule, energy windows, mobility and personal work-capacity models → outside this Dida task-planning suite; do not persist them here or route them into the planning profile.
+- Estimate and actual-effort evidence → `dida-task-estimator` / `dida-task-progress` / native focus records.
 - Cross-project durable rule, tool/environment fact, reusable workflow convention or long-lived agreement → this Skill.
 - Project-specific durable rule → explicit memory/config record scoped to that project, not a duplicate of live task state.
 
@@ -36,11 +37,11 @@ Do not create a parallel editable Markdown/SQLite memory database.
 
 Before every write, ask “哪个对象才是真正 owner？”
 
-- “以后周三晚上不要安排科研” → profile
+- “核心周交付物默认最多两个” → profile
 - “这个 PCB 已经布完线” → PCB task/progress
 - “这个项目所有原始设计方案都不能覆盖，只改修改稿” → durable project rule
 - “Windows + WSL，某工具只在 WSL 中可用” → tool/environment memory when genuinely reusable
-- “今天做到 22:00” → one-day exception, not memory
+- “今天做到 22:00” → transient execution detail, not Dida planning memory/profile
 
 Never duplicate one fact across owners just for convenience.
 
@@ -53,15 +54,7 @@ If the existing runtime schema uses `系统配置` memory categories, keep using
 - `长期记忆｜工作方式`
 - `长期记忆｜通用约定`
 
-Each memory should be a small independent NOTE/task record with:
-
-- concise `记忆｜...` title;
-- current fact and applicability;
-- no execution date or estimate;
-- explicit scope/source/confidence where the runtime schema supports it;
-- change history in comments rather than duplicate records.
-
-This structure is optional compatibility with the existing system; do not create memory categories inside business task trees.
+Each memory should be a small independent NOTE/task record with a concise title, current fact and applicability, no execution date or estimate, and explicit scope/source/confidence where supported. Use comments for change history rather than duplicate records.
 
 ## Save / update
 
@@ -79,26 +72,15 @@ When a memory rule materially changes a plan, higher-level Skills may mention it
 
 ## Forget / change
 
-Resolve the exact owner first.
-
-- If the information is owned by a live task → update/delete there.
-- If owned by profile → route to `dida-planning-profile`.
-- If owned by this Skill → update/delete the exact durable memory record.
-
-Do not “forget” a fact by merely adding a contradictory memory.
+Resolve the exact owner first. Live task facts are updated on the task; task-planning policy routes to profile; this Skill updates/deletes only its exact durable memory record. Do not “forget” a fact by adding a contradictory copy.
 
 ## Global planning interaction
 
-This Skill does **not** participate in completeness checks by returning “everything remembered”. For global daily/weekly planning, `dida-manager` / `dida-daily-planner` must first enumerate all unfinished TickTick tasks. Memory is loaded only afterward when a specific project rule is relevant.
+This Skill does not participate in completeness checks by returning “everything remembered”. For global weekly planning, `dida-manager` / `dida-weekly-delivery` first enumerate all unfinished TickTick tasks. Memory is loaded only afterward when a specific durable rule is relevant.
 
 ## Initialize
 
-If the runtime already has memory categories, reuse them. If initialization is genuinely needed:
-
-1. resolve/create the configured system list through MCP/connector;
-2. create only missing category parents;
-3. preserve user-edited category notes;
-4. use CLI only as fallback when no connector is available.
+If runtime already has memory categories, reuse them. If initialization is genuinely needed, create only missing category parents, preserve user-edited notes, and use CLI only when no connector is available.
 
 ## References
 

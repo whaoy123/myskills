@@ -17,6 +17,11 @@ def rebuild(tasks: list[dict[str, Any]]) -> dict[str, Any]:
             except Exception as exc:
                 malformed.append({"task_id":task.get("id"),"comment_id":comment.get("id"),"error":str(exc)}); continue
             if event.get("event") != "completed": continue
+            actual = event.get("actual_effort_minutes")
+            actual_source = "actual_effort_minutes"
+            if actual is None and event.get("calendar_minutes") is not None:
+                actual = event.get("calendar_minutes")
+                actual_source = "legacy_calendar_minutes"
             record={
                 "task_id": task.get("id"),
                 "category": event.get("category") or task.get("category"),
@@ -27,7 +32,8 @@ def rebuild(tasks: list[dict[str, Any]]) -> dict[str, Any]:
                 "ai_mode": event.get("ai_mode") or task.get("ai_mode"),
                 "output_scale": event.get("output_scale") or task.get("output_scale"),
                 "estimated_minutes": event.get("prior_estimate_minutes"),
-                "calendar_minutes": event.get("calendar_minutes"),
+                "actual_effort_minutes": actual,
+                "actual_effort_source": actual_source if actual is not None else None,
                 "focus_minutes": event.get("focus_minutes"),
                 "other_active_minutes": event.get("other_active_minutes"),
                 "ai_parallel_minutes": event.get("ai_parallel_minutes"),
@@ -35,7 +41,7 @@ def rebuild(tasks: list[dict[str, Any]]) -> dict[str, Any]:
                 "included": bool(event.get("included_in_estimation")),
                 "operation_id": event.get("operation_id"),
             }
-            if record["included"] and record["estimated_minutes"] and record["calendar_minutes"]:
+            if record["included"] and record["estimated_minutes"] and record["actual_effort_minutes"]:
                 samples.append(record)
             else:
                 audits.append(record)

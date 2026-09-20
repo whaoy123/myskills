@@ -1,6 +1,6 @@
 interface:
   display_name: "滴答任务总控"
-  short_description: "路由任务管理、全局排期、拆解、估时与复盘，并优先使用 MCP"
-  default_prompt: "使用 $dida-manager 根据当前滴答清单真实任务状态处理这次任务管理请求；全局规划先完整扫描全部未完成任务。"
+  short_description: "任务归属、依赖、估时和周交付的唯一入口"
+  default_prompt: "使用 $dida-manager 处理任务请求；全局规划先完整读取业务任务，再选择可验收周交付物。"
 policy:
   allow_implicit_invocation: true

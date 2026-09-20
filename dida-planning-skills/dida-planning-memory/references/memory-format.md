@@ -9,7 +9,6 @@ role: memory_category
 required_for_parent: false
 progress: 0
 date_semantics: none
-mobility: fixed
 privacy: normal
 estimate_confidence: high
 ```
@@ -28,7 +27,6 @@ role: memory
 required_for_parent: false
 progress: 0
 date_semantics: none
-mobility: fixed
 privacy: normal
 estimate_confidence: high
 dependency_mode: all
@@ -50,6 +48,8 @@ Allowed memory fields:
 - `applies_to`: `all` or an exact project/task ID
 - `review_after`: optional ISO date for facts likely to become stale
 - `supersedes`: optional previous memory task ID
+
+Scheduling/mobility fields are not part of new memory records. Legacy records containing them may be read, but memory must not create or update them.
 
 Use comments for updates:
 

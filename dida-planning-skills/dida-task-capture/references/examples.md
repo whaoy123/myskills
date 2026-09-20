@@ -1,14 +1,14 @@
 # Capture examples
 
-## Clear task
+## Clear task with execution wording
 
 User: “把明天下午修改测试方案记录到项目与硬件，放到南航发电机下面。”
 
 - Title: `修改直通测试方案`
 - List: `项目与硬件`
 - Parent: resolved `南航发电机`
-- Date semantics: `execution_window`
-- Mobility: `movable`
+- Planner date semantics: `none`
+- If the user explicitly wants a Dida reminder for tomorrow afternoon, store that as a native reminder/date; do not create an `execution_window` Planner field.
 
 ## Ambiguous idea
 

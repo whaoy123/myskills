@@ -7,7 +7,7 @@ from pathlib import Path
 
 SKILLS = [
     "dida-manager", "dida-cli", "dida-task-capture", "dida-task-breakdown", "dida-task-estimator",
-    "dida-daily-planner", "dida-task-progress", "dida-weekly-review", "dida-planning-profile",
+    "dida-weekly-delivery", "dida-task-progress", "dida-weekly-review", "dida-planning-profile",
     "dida-planning-memory"
 ]
 
@@ -128,6 +128,20 @@ def validate(root: Path, *, strict_manifest: bool = False) -> tuple[list[str], l
     for doc in ["README.md", "REVIEW_REPORT.md", "SUBAGENT_REVIEW_PROMPT.md"]:
         if not (root / doc).exists():
             errors.append(f"missing root document {doc}")
+
+    # New templates must not reintroduce the retired scheduling metadata.
+    scheduling_template_roots = [
+        root / "dida-planning-profile" / "assets" / "config-notes",
+        root / "dida-planning-memory" / "assets" / "memory-categories",
+    ]
+    for folder in scheduling_template_roots:
+        if not folder.exists():
+            continue
+        for path in folder.glob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            for retired in ("mobility:", "date_semantics: execution_window"):
+                if retired in text:
+                    errors.append(f"{path}: retired scheduling metadata {retired!r}")
 
     manifest_issues = validate_manifest(root)
     if strict_manifest:

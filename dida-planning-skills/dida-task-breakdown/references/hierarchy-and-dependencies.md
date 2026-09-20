@@ -5,12 +5,18 @@
 - `project`: long-lived outcome, such as a research or hardware project.
 - `phase`: major deliverable or stage.
 - `task`: executable work with a completion criterion.
-- `block`: one planned session for a multi-session task.
+- `block`: legacy historical session only; do not create new blocks.
 - `required_for_parent`: omitted/true means it blocks parent completion; false means optional and triggers a completion question rather than a block.
 
 ## Good executable task
 
 A good child states one observable output, such as “完成 PMG 上电电压测试表并核对量程”, rather than “继续做项目”.
+
+## Gate pattern
+
+Use a hard `finish_to_start` edge when a downstream artifact is invalid until an upstream decision or freeze is accepted. Examples: requirements freeze before schematic implementation, interface definition before RTL integration, approved BOM choice before layout constraints.
+
+Do not convert a preferred order into a hard gate. A gate must name the acceptance artifact and the condition that releases downstream work.
 
 ## Dependency representation
 
@@ -33,4 +39,8 @@ Build a directed graph for task-based dependencies. Reject an edge if the target
 
 ## Progress
 
-Use only 0, 25, 50, 75, 90, 100. Parent progress is weighted by child estimated duration when estimates exist; otherwise use equal weight.
+Use only 0, 25, 50, 75, 90, 100. Parent progress is weighted by child estimated effort when estimates exist; otherwise use equal weight.
+
+## Weekly delivery
+
+Weekly contracts are metadata on existing tasks/phases. Supporting task IDs are references, not a reason to reparent work. Count actual shared leaf work once; do not collapse unrelated outputs into one commitment merely by naming.
