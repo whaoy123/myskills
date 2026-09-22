@@ -1,6 +1,6 @@
 ---
 name: hardware-design-review
-description: Use when reviewing an electronic hardware design from schematic PDF, Altium netlist, BOM, datasheet-derived reference modules, project operating conditions, PCB screenshots/rules/exports, or a previous review state. Build a normalized design model, load only applicable device/interface/power/isolation/PCB rules, execute traceable checks and script-based calculations, evaluate complete signal chains, and report PASS/FAIL/UNCLEAR/N/A with evidence and incremental-review dependencies.
+description: Use when reviewing an electronic hardware design from schematic PDF, Altium netlist, BOM, datasheet-derived reference modules, project operating conditions, PCB screenshots/rules/exports, or a previous review state. Build a normalized design model, load only applicable device/interface/power/isolation/PCB rules, execute traceable checks and script-based calculations, evaluate complete signal chains, audit BOM/package consistency and external-interface protection, and report PASS/FAIL/UNCLEAR/N/A with evidence, incremental-review dependencies, and an explicit board-release decision.
 ---
 # Hardware Design Review
 
@@ -220,7 +220,43 @@ Examples:
 
 Rules may come from device modules and from generic `power/`, `isolation/` or `system/` modules.
 
-## 14. Phase L — PCB checks
+## 14. Phase L — BOM, package and procurement consistency
+
+Treat BOM/package consistency as part of design correctness, not as a purchasing afterthought.
+
+Check, when the required evidence is available:
+
+- same electrical parameter set represented by multiple MPNs;
+- same MPN assigned to multiple footprints;
+- manufacturer package/ordering code versus PCB footprint;
+- body dimensions, pitch, pin count, polarity and Pin 1 orientation;
+- passive package size, voltage rating, power rating, dielectric, tolerance, TCR/working-voltage or other parameters that affect interchangeability;
+- connector gender, pin count, pitch and mechanical keying;
+- duplicate parts that appear mergeable but differ in hidden electrical, thermal, lifetime or assembly constraints.
+
+Do not recommend part consolidation merely because value and nominal package match. A consolidation recommendation requires evidence that all design-relevant parameters remain compatible.
+
+A footprint-name mismatch is not automatically a failure. Judge the actual land pattern/package compatibility when that evidence is available. If the footprint geometry cannot be verified, return `UNCLEAR` and name the exact geometry or PCB evidence required.
+
+## 15. Phase M — External-interface and protection audit
+
+Trace every externally exposed power, signal and output path as:
+
+`external source/fault -> protection network -> internal device pins -> return/domain path`
+
+Check applicable protection classes using project requirements and authoritative component/interface rules, including:
+
+- power-entry fuse/current limiting, reverse-polarity protection, surge/overvoltage suppression and input energy storage;
+- TVS operating/standoff/clamping compatibility with the protected circuit;
+- analog/high-voltage input limiting, divider stress, clamp paths, common-mode/differential fault exposure and creepage/clearance dependencies;
+- communication and connector ESD/surge provisions where required by the interface/environment;
+- output series protection, back-drive paths and external misconnection behavior;
+- protection return paths and their power/ground/isolation domains;
+- whether a protection component itself violates normal-signal bandwidth, leakage, capacitance, voltage or current requirements.
+
+Do not invent a protection grade. Laboratory supplies, industrial field wiring and aircraft/vehicle power environments may require different rules. If the external transient/ESD/surge environment is not defined and it changes the decision, mark the affected check `UNCLEAR`.
+
+## 16. Phase N — PCB checks
 
 Load only applicable PCB/layout rules. Typical classes:
 
@@ -237,7 +273,7 @@ Load only applicable PCB/layout rules. Typical classes:
 
 Evidence limits are strict. A top-layer screenshot cannot prove that an isolation keepout is clear on all copper layers. If a rule requires information not visible or extractable, return `UNCLEAR` and state exactly what PCB evidence is missing.
 
-## 15. Result state
+## 17. Result state
 
 Only these final states are allowed:
 
@@ -250,7 +286,7 @@ Every `UNCLEAR` must state the missing/conflicting information and what would re
 
 Never promote uncertainty to PASS.
 
-## 16. Result record
+## 18. Result record
 
 Every evaluated rule must preserve:
 
@@ -269,7 +305,7 @@ Every evaluated rule must preserve:
 
 Use namespaced rule IDs in stored results, for example `device:<module-id>:<rule-id>` or `pcb:<module-id>:<rule-id>`.
 
-## 17. Incremental review
+## 19. Incremental review
 
 Follow `schemas/review-state.schema.json`.
 
@@ -296,9 +332,15 @@ A previous result may be retained only if all of its dependency facts, reference
 
 Do not reset an entire board review because one unrelated component changed.
 
-## 18. Final report
+## 20. Final report
 
-Begin with blocking findings, then unresolved items, then concise retained-pass information.
+Begin with an explicit board-release decision:
+
+- `可投板`: no applicable release-blocking REQUIRED rule is `FAIL` or `UNCLEAR`, and required connectivity, BOM/package, protection and PCB evidence is sufficient for the claimed review scope.
+- `修正后可投板`: the current revision is not releasable, but all release blockers are bounded, specific corrections or confirmations. List every item that must be closed before release. This label is not permission to fabricate the current revision.
+- `不建议投板`: one or more release blockers remain whose correction, applicability or evidence is not yet bounded well enough to support release.
+
+Then report blocking findings, unresolved items, BOM/package findings, protection findings, and concise retained-pass information.
 
 For each non-PASS finding include:
 
@@ -307,6 +349,7 @@ For each non-PASS finding include:
 
 Also report:
 
+- the board-release decision and exact release blockers;
 - PASS / FAIL / UNCLEAR / N/A counts;
 - modules loaded;
 - changed DesignFacts since the previous revision;
@@ -316,13 +359,16 @@ Also report:
 
 Do not call a design fully verified while any applicable `REQUIRED` rule remains `FAIL` or `UNCLEAR`.
 
-## 19. Self-check before delivery
+## 21. Self-check before delivery
 
 - Device-specific requirements came from reference modules, not generic memory.
 - Connectivity was checked before dependent calculations.
 - Every decision-changing calculation was script-produced and recorded.
 - Absolute maximum and normal operating ranges were not conflated.
 - Cross-device boundaries and complete signal chains were checked.
+- BOM MPN/package/footprint consistency and justified consolidation opportunities were checked when BOM/package evidence was in scope.
+- Externally exposed power/signal/output paths were checked against applicable protection requirements.
+- The final report contains an explicit board-release decision whose blockers are consistent with the rule results.
 - PCB claims do not exceed the available PCB evidence.
 - Every UNCLEAR names the exact missing evidence.
 - Incremental results are reused only when their dependency keys remain unchanged.
