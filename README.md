@@ -77,7 +77,7 @@
 | [ponytail](ponytail/SKILL.md) | 编码时优先 YAGNI、复用现有实现、标准库和最小可行 diff，抑制不必要的抽象、依赖、脚手架和过度设计。 |
 | [karpathy-guidelines](karpathy-guidelines/SKILL.md) | 基于 Andrej Karpathy 公开内容整理的软件工程、编码和 AI 系统设计原则。 |
 | [markitdown](markitdown/SKILL.md) | 封装 Microsoft MarkItDown，将 PDF、Word、PowerPoint、Excel、图片、音频、HTML、压缩包和 EPUB 等转换为适合 LLM 处理的 Markdown。 |
-| [tiered-model-orchestrator](tiered-model-orchestrator/SKILL.md) | 当前会话保留最终主控与验收权；Ruflo 可用时作为多 Agent 执行层，负责 swarm、workflow、状态、worktree 隔离和执行记忆，不可用时回退到原生子代理或独立 Codex 任务。 |
+| [multi-agent-collaboration](multi-agent-collaboration/SKILL.md) | 当前会话保留最终主控与验收权；Ruflo 可用时作为多 Agent 执行层，负责 swarm、workflow、状态、worktree 隔离和执行记忆，不可用时回退到原生子代理或独立 Codex 任务。 |
 
 ### 滴答清单任务管理
 
@@ -128,7 +128,7 @@
 | **karpathy-guidelines** | 思想总结 / 整理 | **Andrej Karpathy** | [karpathy](https://github.com/karpathy) | MIT License |
 | **ponytail** | 社区引用 / 原样收录 | **Dietrich Gebert** | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | MIT License；再分发时保留版权与许可声明 |
 | **markitdown** | 工具集成 / Skill 封装 | **Microsoft Corporation** | [microsoft/markitdown](https://github.com/microsoft/markitdown) | MIT License；运行时依赖遵循上游许可 |
-| **tiered-model-orchestrator（Ruflo 集成）** | 执行层适配 / 流程思想参考 | **ruvnet** | [ruvnet/ruflo](https://github.com/ruvnet/ruflo) | MIT License；本 Skill 的主控与验收规则仍为本仓库自有 |
+| **multi-agent-collaboration（Ruflo 集成）** | 执行层适配 / 流程思想参考 | **ruvnet** | [ruvnet/ruflo](https://github.com/ruvnet/ruflo) | MIT License；本 Skill 的主控与验收规则仍为本仓库自有 |
 | **humanizer** | 社区引用 | **Siqi Chen (blader)** | [blader/humanizer](https://github.com/blader/humanizer) | MIT License |
 | **anti-defensive-writing → humanizer** | 融合 / 改写 | **Kiterlin** | [Kiterlin/anti-defensive-writing](https://github.com/Kiterlin/anti-defensive-writing) | MIT License |
 | **no-negative-echo** | 社区引用 / 仓库内再分发 | **LB623** | [LB623/no-negative-echo](https://github.com/LB623/no-negative-echo) | MIT License |
@@ -139,7 +139,7 @@
 
 - `markitdown` 只封装 Microsoft MarkItDown 的使用方式，不在本仓库复制其实现源码；完整说明见 [`markitdown/THIRD_PARTY_NOTICES.md`](markitdown/THIRD_PARTY_NOTICES.md)。
 - `ponytail` 原样收录上游核心 Skill，并保留 MIT License，见 [`ponytail/LICENSE`](ponytail/LICENSE) 与 [`ponytail/THIRD_PARTY_NOTICES.md`](ponytail/THIRD_PARTY_NOTICES.md)。
-- `tiered-model-orchestrator` 参考 Ruflo 的公开执行模型，把 Ruflo 作为可选运行后端；来源说明见 [`tiered-model-orchestrator/THIRD_PARTY_NOTICES.md`](tiered-model-orchestrator/THIRD_PARTY_NOTICES.md)。
+- `multi-agent-collaboration` 参考 Ruflo 的公开执行模型，把 Ruflo 作为可选运行后端；来源说明见 [`multi-agent-collaboration/THIRD_PARTY_NOTICES.md`](multi-agent-collaboration/THIRD_PARTY_NOTICES.md)。
 - `humanizer` 包含来自 `anti-defensive-writing` 的改写内容；再分发相关源码或 substantial portions 时应保留相应 MIT 声明，见 [`humanizer/THIRD_PARTY_NOTICES.md`](humanizer/THIRD_PARTY_NOTICES.md)。
 - `no-negative-echo` 的完整许可和来源说明见 [`no-negative-echo/LICENSE`](no-negative-echo/LICENSE) 与 [`no-negative-echo/THIRD_PARTY_NOTICES.md`](no-negative-echo/THIRD_PARTY_NOTICES.md)。
 - `tan-chengyi-perspective` 原样收录自上游项目，修改或再分发时应继续保留原有来源和鸣谢信息。
