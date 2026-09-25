@@ -1,0 +1,167 @@
+version: 1
+updated_at: 2026-09-25
+purpose: >-
+  Persistent learner model for this skill. It records what the user already knows,
+  what is only familiar/partial, and what is newly introduced, so later explanations
+  can reuse known concepts instead of restarting from zero.
+
+status_definitions:
+  known: "用户已明确表示掌握，或能稳定、正确地使用；后续默认只做一句提醒，不重讲基础。"
+  familiar: "用户学过/见过，能认出概念，但不保证能独立推导；后续先用一句回忆，再接当前电路。"
+  partial: "已经解释过或用户能理解一部分，但关键因果/公式仍可能断裂；后续需要结合具体电路再讲一次。"
+  new: "本轮刚引入，尚不能视为掌握。"
+  uncertain: "证据不足，不能判断是否掌握；不得默认用户知道。"
+  needs_correction: "用户当前理解里存在明确偏差；后续优先修正该点，但不要扩大到无关内容。"
+
+evidence_rules:
+  - "用户明确说‘这个我知道/不用讲/学过’：可提升为 known 或 familiar，取决于是否能正确使用。"
+  - "用户在自己的说明中正确使用概念：至少可记为 familiar；重复正确使用或明确确认后再升 known。"
+  - "用户追问‘这是什么/为什么/没理解’：对应概念不能标 known；按 new 或 partial 处理。"
+  - "一次被解释过 ≠ 已掌握。解释完成后最多记为 new；后续能正确复述/应用才升级。"
+  - "用户沉默、未追问，不构成掌握证据。"
+  - "风格修改只更新 explanation-profile，不自动改变知识状态。"
+
+concepts:
+  - id: AE-DIODE-001
+    domain: 模拟电子技术
+    concept: 二极管单向导通 / 截止
+    status: known
+    confidence: high
+    evidence:
+      - date: 2026-09-22
+        type: user-authored
+        note: "用户在自己修改的 POR 说明中主动写出‘二极管最明显的性质是单向导通’，并以此作为后续解释起点。"
+    teaching_policy: "不再从 PN 结基础开始；需要时只提醒‘正向可导通、反向截止’，直接进入当前电路。"
+
+  - id: AE-RC-001
+    domain: 模拟电子技术
+    concept: 一阶 RC 低通与截止频率 f_c = 1/(2πRC)
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-22
+        type: user-authored
+        note: "用户在 POR 文档中把 1 kΩ + 0.01 µF 直接概括为 15.9 kHz 低通，并明确表示该位置不需要细讲。"
+    teaching_policy: "默认不解释一阶 RC 基本原理；涉及选值时重点讲时间尺度、约束和为什么取这个量级。"
+
+  - id: AE-OPAMP-001
+    domain: 模拟电子技术
+    concept: 理想运放负反馈下 v+ ≈ v-（虚短）
+    status: known
+    confidence: high
+    evidence:
+      - date: 2026-09-22
+        type: user-edited-note
+        note: "当前 POR 说明接受并使用 v+≈v- 解释 AR1+D1，但没有证据表明用户可独立从反馈拓扑判断何时成立。"
+    teaching_policy: "后续默认直接使用虚短；只有负反馈是否成立不明显时才解释。"
+
+  - id: AE-PRECISION-DIODE-001
+    domain: 模拟电子技术
+    concept: 运放 + 二极管构成理想二极管/精密整流，运放补偿二极管压降
+    status: partial
+    confidence: high
+    evidence:
+      - date: 2026-09-22
+        type: conversation
+        note: "刚用于解释 POR 三相最大值选择；属于当前正在建立的知识连接。"
+    teaching_policy: "后续再次出现时先用 POR_A 支路做一句类比，再说明新电路差异。"
+
+  - id: AE-PEAK-HOLD-001
+    domain: 模拟电子技术
+    concept: 峰值保持：快速充电、慢速放电、必要时主动复位
+    status: partial
+    confidence: high
+    evidence:
+      - date: 2026-09-22
+        type: conversation
+        note: "已讨论 C4=0.1 µF 的充电/保持时间常数以及 Q1 主动复位，但用户要求继续把选值逻辑补完整。"
+    teaching_policy: "再次遇到峰值保持时，直接复用‘充得快、掉得慢、需要时清零’三句主线，再做当前参数计算。"
+
+  - id: POWER-3PH-001
+    domain: 三相交流
+    concept: 400 Hz 三相正弦相差 120°，周期 T=2.5 ms
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-22
+        type: current-work
+        note: "用户当前文档已使用 400 Hz 三相信号，但是否熟悉‘最大值刷新间隔 T/3’还不能视为已掌握。"
+    teaching_policy: "400 Hz→2.5 ms 可直接用；涉及三相峰值刷新时把 T/3=0.833 ms 重新算一遍。"
+
+  - id: GCU-POR-001
+    domain: 737NG GCU / AVR
+    concept: POR 三相最高相检测用于约 130 V 的高相限制
+    status: partial
+    confidence: high
+    evidence:
+      - date: 2026-09-22
+        type: source-and-conversation
+        note: "当前正在逐块理解 A4_VR_SENSE；用户已接受‘平均稳压 + 最高相限制’这一功能分工，但仍在细化电路实现。"
+    teaching_policy: "后续从系统作用切入时可以直接使用，不需要重新解释 POR 的基本含义；若涉及阈值/具体动作仍回到 CMM 原文。"
+
+  - id: GCU-ARCH-001
+    domain: 737NG GCU / 架构
+    concept: A1~A5 五块板的基本分工
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-22
+        type: conversation
+        note: "刚建立 A1前面板、A2数字/离散、A3模拟保护、A4电源+AVR、A5背板 的整体框架。"
+    teaching_policy: "后续定位电路时直接说属于哪块板，不重复五板总览；如果用户再次问再展开。"
+
+  - id: GCU-AVERAGE-SENSE-001
+    domain: 737NG GCU / AVR
+    concept: A4 AVERAGE SENSE 用三相 POR 整流、等权合成和平滑形成正常稳压反馈量
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-23
+        type: user-edited-note
+        note: "用户直接修改 AVERAGE SENSE 说明，保留输入量级、51.1k 合成关系、整流必要性、C7 选值和正常 115 V 工作点计算。"
+    teaching_policy: "后续可直接引用其作为正常稳压主反馈，不重新解释 D6~D9 基础原理，除非新问题依赖具体数值。"
+
+  - id: AE-SALLENKEY-001
+    domain: 模拟电子技术
+    concept: 二阶 Sallen-Key 类低通的特征频率与 Q
+    status: partial
+    confidence: medium
+    evidence:
+      - date: 2026-09-23
+        type: user-edited-note
+        note: "Current Limit 说明中保留了 R25/R26/C11/C12 的二阶低通特征频率、Q 和 1200 Hz 衰减计算。"
+    teaching_policy: "再次出现时直接从实际 R/C 和二阶低通公式起步，不从滤波器基础章节重讲。"
+
+  - id: GCU-CURRENT-LIMIT-001
+    domain: 737NG GCU / AVR
+    concept: A4 Current Limit 通过最高相电流代表量、二阶低通和门槛偏置参与 SUM_NODE，使高负载时 POR 允许下垂；它与 A3/FPGA 的 OC1/OC2 跳闸保护不同
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-23
+        type: user-edited-note
+        note: "用户保留 1200 Hz 二阶低通、约 5.35 V 内部门槛及 150/187.5 kVA 闭环测试，并把功能重写为高负载时 AVR 主动削弱稳压。"
+    teaching_policy: "后续直接引用 Current Limit 的控制作用；不重复最高相选择、5.35 V 门槛推导，除非新问题依赖这些数值。"
+
+  - id: AE-INTEGRATOR-001
+    domain: 模拟电子技术
+    concept: 运放反馈电容形成积分/斜坡，可通过虚短和节点 KCL 求 dVo/dt
+    status: partial
+    confidence: medium
+    evidence:
+      - date: 2026-09-23
+        type: user-edited-note
+        note: "用户在 VR_DISABLE 说明中保留 C13 反馈电容的 KCL 推导、-18.6 V/s 斜率和约 0.81 s 局部理想时间，并主动补充虚短依据。"
+    teaching_policy: "再次遇到积分器时直接从虚短 + KCL 起步；新拓扑仍把电流方向和公式写清。"
+
+  - id: GCU-VR-DISABLE-001
+    domain: 737NG GCU / AVR
+    concept: A4 VR_DISABLE/Soft Start 把高有效离散量转换为可缓慢退出的模拟限流量，经 Current Limit 通道抑制/逐步恢复电压调节
+    status: familiar
+    confidence: medium
+    evidence:
+      - date: 2026-09-23
+        type: user-edited-note
+        note: "用户保留 R32/R33 分压、R34/R35/C13/D40 斜坡、D15 注入 Current Limit 的解释，并按因果关系精简表述。"
+    teaching_policy: "后续可直接引用‘VR_DISABLE 用模拟限流量压住调节器，解除时缓慢退出’，不重复 2.00 V、18.6 V/s、0.81 s 推导，除非新问题依赖数值。"
+
