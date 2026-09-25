@@ -10,6 +10,7 @@
 |---|---|
 | [engineering-prestudy](engineering-prestudy/SKILL.md) | 从问题理解、资料检索、方案权衡一直推进到分阶段实施计划，并可衔接任务管理。 |
 | [research-understanding](research-understanding/SKILL.md) | 建立和修正项目认知模型，识别概念缺口，维护项目知识状态。 |
+| [source-to-understanding-md](source-to-understanding-md/SKILL.md) | 将技术原始文档与用户已学教材/知识结合，按“整体→局部→原理→真实参数计算→系统作用”生成可理解的 Markdown，并随用户修改持续维护已知知识与讲解风格。 |
 | [research-landscape](research-landscape/SKILL.md) | 检索标准、论文、官方资料、产品、开源项目、前代实现、常见问题与相互矛盾的证据。 |
 | [research-design-planning](research-design-planning/SKILL.md) | 将研究证据转化为方案对比、已确认设计决定、阶段划分、验收标准和依赖关系。 |
 | [engineering-design-fact-base](engineering-design-fact-base/SKILL.md) | 将硬件、RTL、嵌入式、接口和器件选型讨论持续沉淀为结构化、可追踪、可更新的工程事实库。 |
